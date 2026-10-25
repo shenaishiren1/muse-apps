@@ -1,0 +1,1910 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>World Cities Map</title>
+    <style>
+      :root {
+        --bg: #f4f6f7;
+        --panel: #ffffff;
+        --ink: #1c2733;
+        --ink-soft: #4a5a68;
+        --line: #d5dde2;
+        --map-bg: #e9f0f3;
+        --grid: #c3d2da;
+        --grid-major: #9db4c0;
+        --equator: #7d99a8;
+        --axis-label: #5d7280;
+        --map-label: #22313d;
+        --leader: #8fa5b1;
+        --btn-bg: #ffffff;
+        --btn-ink: #1c2733;
+        --btn-line: #b9c7cf;
+        --btn-on-bg: #d3e5ef;
+        --btn-on-line: #7ba7bc;
+        --tooltip-bg: #16222c;
+        --tooltip-ink: #f2f6f8;
+        --row-alt: #f0f3f5;
+        --row-hover: #dde8ee;
+        --dot: #14222e;
+        --dot-ring: #f7fafb;
+        --tropics-fill: rgba(238, 172, 54, 0.15);
+        --tropics-line: #bd8627;
+        --polar-fill: rgba(110, 165, 195, 0.16);
+        --polar-line: #5f8aa0;
+        --tz-band: rgba(62, 86, 102, 0.08);
+        --home-tz-fill: rgba(255, 183, 28, 0.26);
+        --leg-ink: #46586a;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0e141a;
+          --panel: #16202a;
+          --ink: #e8eff3;
+          --ink-soft: #a7b8c2;
+          --line: #2c3d49;
+          --map-bg: #132029;
+          --grid: #27404e;
+          --grid-major: #38586a;
+          --equator: #527a8f;
+          --axis-label: #7e97a6;
+          --map-label: #dce7ec;
+          --leader: #4d6a7a;
+          --btn-bg: #1d2c38;
+          --btn-ink: #e8eff3;
+          --btn-line: #3a5263;
+          --btn-on-bg: #2b4a5f;
+          --btn-on-line: #527a8f;
+          --tooltip-bg: #eef4f7;
+          --tooltip-ink: #14202a;
+          --row-alt: #1a2833;
+          --row-hover: #243a4a;
+          --dot: #14222e;
+          --dot-ring: #f7fafb;
+          --tropics-fill: rgba(238, 172, 54, 0.13);
+          --tropics-line: #d9a441;
+          --polar-fill: rgba(110, 165, 195, 0.14);
+          --polar-line: #7fb0c9;
+          --tz-band: rgba(190, 215, 230, 0.055);
+          --home-tz-fill: rgba(255, 183, 28, 0.24);
+          --leg-ink: #c3d3dd;
+        }
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      /* iOS Safari otherwise auto-inflates text by a factor it picks
+         per element, which would scale the small header labels and
+         the row text differently; pin both to their declared sizes. */
+      html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      main {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 20px 16px 36px;
+      }
+      h1 {
+        font-size: 22px;
+        font-weight: 650;
+        letter-spacing: 0.01em;
+        margin: 4px 0 14px;
+      }
+      .map-wrap {
+        position: relative;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      svg#map {
+        display: block;
+        width: 100%;
+        height: auto;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      /* Growth animations scale these via CSS transforms (WAAPI):
+         each population circle about its own centre, each elevation
+         line vertically from its dot end. */
+      svg#map .grow-c { transform-box: fill-box; transform-origin: center; }
+      svg#map .grow-l { transform-box: fill-box; transform-origin: 50% 100%; }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .controls button {
+        appearance: none;
+        border: 1px solid var(--btn-line);
+        background: var(--btn-bg);
+        color: var(--btn-ink);
+        border-radius: 5px;
+        min-width: 0;
+        height: 24px;
+        padding: 0 8px;
+        font-size: 11px;
+        line-height: 1;
+        font-family: inherit;
+        cursor: pointer;
+        box-shadow: 0 1px 2px rgba(10, 25, 35, 0.14);
+      }
+      .controls button.reset { font-size: 11px; font-weight: 600; letter-spacing: 0.02em; }
+      /* Mode buttons (Labels / Population / Elevation) show their
+         ON state by colour alone — a soft tinted fill and border —
+         while their text never changes. */
+      .controls button.mode-on { background: var(--btn-on-bg); border-color: var(--btn-on-line); }
+      .controls button:active { transform: translateY(1px); }
+      .tooltip {
+        position: absolute;
+        pointer-events: none;
+        background: var(--tooltip-bg);
+        color: var(--tooltip-ink);
+        border-radius: 7px;
+        padding: 7px 10px;
+        font-size: 12.5px;
+        line-height: 1.45;
+        opacity: 0;
+        transition: opacity 0.12s ease;
+        z-index: 4;
+        max-width: 230px;
+        box-shadow: 0 4px 14px rgba(5, 15, 22, 0.28);
+      }
+      .tooltip.show { opacity: 1; }
+      .tooltip .t-name { font-weight: 700; font-size: 13.5px; }
+      .tooltip .t-sub { opacity: 0.82; }
+      /* The city list: a static header bar sitting ABOVE the
+         scroll box, completely outside the scrolling content —
+         no position:sticky, no scroll listener, no transform
+         pinning anywhere. Alignment between the header and the
+         rows is by construction on a single shared CSS grid:
+         the four column tracks are defined ONCE in --cols on
+         .list-wrap, and both the header bar (.list-head) and
+         every city row (.city-row) are grids using that exact
+         template, so their column boundaries are the same
+         arithmetic on both sides, on any engine. (Four earlier
+         table-based constructions — separate sticky header
+         table, script-measured width copy, two matched
+         fixed-layout tables, and a single table with a pinned
+         header — all misaligned or lost the header on a real
+         iPhone; there is no table layout, no colgroup, and no
+         width measuring or copying left.) The scroll box hides
+         its scrollbar outright — zero layout width on every
+         platform — so the rows' grid width always equals the
+         header bar's width exactly; scrolling still works by
+         touch, wheel, trackpad and keyboard. The box is exactly
+         ten rows tall, so browsing all 44 cities never means
+         scrolling the whole page; row and header heights are
+         pinned via the variables below — borders included — on
+         desktop and mobile alike. */
+      .list-wrap {
+        --row-h: 36px;
+        --head-h: 38px;
+        --cols: minmax(0, 1fr) 96px 100px 76px;
+        margin-top: 18px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      /* The header bar: a plain static grid, the first thing in
+         the bordered wrapper, directly above the scroll box. It
+         is not inside the scroll content and never moves. The
+         padding-right is a small header-only inset (6px, the
+         same at every width): the flexible City track absorbs
+         it, so the Lat/TZ/Pop header tracks sit that much
+         further left while the rows and the City column stay
+         exactly where they were. On the user's phone the header
+         rendered a few px right of the rows (invisible in the
+         test browser, which measures 0px), and the Pop sort
+         arrow — absolutely positioned just past its label, into
+         the cell's right padding — was left half-clipped at the
+         bar's right edge; the inset also gives that arrow clear
+         margin inside the bar in every sort state. */
+      .list-head {
+        display: grid;
+        grid-template-columns: var(--cols);
+        height: var(--head-h);
+        border-bottom: 1px solid var(--line);
+        background: var(--panel);
+        padding-right: 6px;
+      }
+      .head-cell {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        height: var(--head-h);
+        line-height: 16px;
+        text-align: left;
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+        padding: 0 14px;
+      }
+      .table-scroll {
+        height: calc(var(--row-h) * 10);
+        overflow-y: auto;
+        overflow-x: auto;
+        overscroll-behavior: contain;
+        scrollbar-width: none;
+        background: var(--panel);
+        font-size: 14px;
+      }
+      .table-scroll::-webkit-scrollbar { display: none; }
+      .head-cell .sort-btn {
+        appearance: none;
+        background: none;
+        border: 0;
+        margin: 0;
+        padding: 0;
+        color: inherit;
+        font: inherit;
+        letter-spacing: inherit;
+        text-transform: inherit;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        position: relative;
+      }
+      .head-cell .sort-btn:focus-visible { outline: 2px solid var(--equator); outline-offset: 2px; }
+      /* Per-column header label micro-offsets (build 15, from the
+         user's phone screenshot): the City label sits 10px further
+         right, Lat and TZ 5px further left, Pop unchanged. Each
+         offset is a transform on that column's sort button, so the
+         label AND its sort arrow (positioned relative to the
+         button — see .sort-ind) move together as one unit, while
+         the grid column tracks, the rows, the column boundaries
+         and the header bar's 6px right inset are all untouched —
+         transforms take no part in layout. City +10px starts from
+         inside the cell's left padding, and Lat/TZ −5px moves
+         those right-aligned labels away from the bar's right side,
+         so nothing clips at either end in any sort state. */
+      .head-cell .sort-btn[data-sort="city"] { transform: translateX(10px); }
+      .head-cell .sort-btn[data-sort="latitude"] { transform: translateX(-5px); }
+      .head-cell .sort-btn[data-sort="timezone"] { transform: translateX(-5px); }
+      /* The sort indicator is OUT OF FLOW: absolutely positioned
+         in the header cell's right padding, just past the label's
+         right edge (4px gap + 9px glyph fits inside the 14px
+         padding). It therefore takes no part in layout at all —
+         sorting only swaps its glyph and opacity — so no column
+         boundary and no label can move when the sort state
+         changes, in any order of header clicks, AND every visible
+         label keeps exactly the right edge its column's values
+         have (an in-flow reserved slot would leave the numeric
+         labels permanently 13px short of their values). The
+         inactive arrow is fully transparent. */
+      .head-cell .sort-ind {
+        position: absolute;
+        left: 100%;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 9px;
+        margin-left: 4px;
+        font-size: 9px;
+        line-height: 1;
+        opacity: 0;
+        pointer-events: none;
+      }
+      .head-cell .sort-ind.on { opacity: 1; }
+      /* Each city row is a grid on the SAME --cols template as
+         the header bar, so its cells land on exactly the header's
+         column boundaries. Cell padding matches the header cells'
+         horizontal padding, so every label sits directly over its
+         column's values. */
+      .city-row {
+        display: grid;
+        grid-template-columns: var(--cols);
+        height: var(--row-h);
+        border-bottom: 1px solid var(--line);
+        cursor: pointer;
+        transition: background 0.12s ease;
+      }
+      .city-row:last-child { border-bottom: none; }
+      .city-row:nth-child(even) { background: var(--row-alt); }
+      .city-row:hover, .city-row:focus-visible { background: var(--row-hover); outline: none; }
+      .city-row:active { background: var(--row-hover); }
+      /* The selected city's row keeps this tint wherever the box is
+         scrolled to, until another city is picked or Reset. */
+      .city-row.selected { background: var(--btn-on-bg); }
+      .row-cell {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        padding: 0 14px;
+        line-height: 18px;
+        white-space: nowrap;
+        overflow: hidden;
+      }
+      .row-cell.num, .head-cell.num { justify-content: flex-end; text-align: right; font-variant-numeric: tabular-nums; }
+      .row-cell.city { font-weight: 600; }
+      .dot {
+        display: inline-block;
+        width: 9px; height: 9px;
+        border-radius: 50%;
+        margin-right: 8px;
+        vertical-align: 1px;
+      }
+      .build-stamp {
+        text-align: center;
+        font-size: 11px;
+        line-height: 1.4;
+        color: var(--ink-soft);
+        opacity: 0.75;
+        margin-top: 14px;
+      }
+      @media (max-width: 560px) {
+        main { padding: 14px 10px 28px; }
+        h1 { font-size: 19px; }
+        .list-wrap { --row-h: 32px; --head-h: 30px; --cols: minmax(0, 1fr) 76px 80px 60px; }
+        .row-cell, .head-cell { padding: 0 7px; }
+        .row-cell { line-height: 16px; }
+        .head-cell { line-height: 14px; }
+        .table-scroll { font-size: 12.5px; }
+        .head-cell { font-size: 11px; letter-spacing: 0.02em; }
+        .row-cell.city { white-space: normal; }
+        .dot { margin-right: 5px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>World Cities Map</h1>
+
+      <div class="map-wrap" id="mapWrap">
+        <svg id="map" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid meet" role="img"
+             aria-label="World map plotting 44 cities at their true longitude and latitude, with circle area proportional to population"></svg>
+        <div class="tooltip" id="tooltip" role="dialog"></div>
+      </div>
+      <div class="controls">
+        <button id="labelsToggle" class="reset" type="button" aria-pressed="false">Labels</button>
+        <button id="popToggle" class="reset" type="button" aria-pressed="false" aria-label="Population">Pop</button>
+        <button id="elevToggle" class="reset" type="button" aria-pressed="false" aria-label="Elevation">Elev</button>
+        <button id="dnToggle" class="reset" type="button" aria-pressed="true">Day/Night</button>
+        <button id="axisToggle" class="reset" type="button" aria-pressed="false">Long/TZ</button>
+        <button id="resetBtn" class="reset" type="button">Reset</button>
+      </div>
+
+      <div class="list-wrap">
+        <div class="list-head" role="row">
+          <div class="head-cell" role="columnheader" aria-sort="none"><button type="button" class="sort-btn" data-sort="city">City<span class="sort-ind" aria-hidden="true"></span></button></div>
+          <div class="head-cell num" role="columnheader" aria-sort="none"><button type="button" class="sort-btn" data-sort="latitude" aria-label="Latitude" title="Latitude">Lat<span class="sort-ind" aria-hidden="true"></span></button></div>
+          <div class="head-cell num" role="columnheader" aria-sort="none"><button type="button" class="sort-btn" data-sort="timezone" aria-label="Time zone" title="Time zone">TZ<span class="sort-ind" aria-hidden="true"></span></button></div>
+          <div class="head-cell num" role="columnheader" aria-sort="none"><button type="button" class="sort-btn" data-sort="population" aria-label="Population" title="Population">Pop<span class="sort-ind" aria-hidden="true"></span></button></div>
+        </div>
+        <div class="table-scroll" id="tableScroll">
+          <div id="cityRows"></div>
+        </div>
+      </div>
+
+      <!--
+        BUILD STAMP — STANDING RULE FOR EVERY FUTURE BUILD:
+        (a) Every content build increments BUILD_NO (data-build-no) by
+            exactly 1, sets BUILD_DATE (data-build-date) to that build's
+            date in America/Los_Angeles (YYYY-MM-DD), and sets the
+            published flag (data-published) OFF (stamp shows no
+            "published"), even if the edit is tiny.
+        (b) When a build is published, set the published flag ON for that
+            same build — the flag flip alone does NOT increment the
+            number or change the date.
+        (c) The stamp renders "N (YYYY-MM-DD)" plus " · Published" only
+            when the flag is on.
+        Keep the visible text in sync with the data attributes.
+        Current: BUILD_NO = 15, BUILD_DATE = 2026-10-13, PUBLISHED = OFF
+      -->
+      <div class="build-stamp" data-build-no="15" data-build-date="2026-10-13" data-published="off">15 (2026-10-13)</div>
+    </main>
+
+    <script>
+      // ---- Data: name, lat, lon, population (millions), region, standard-time UTC offset ----
+      var CITIES = [
+        { name: "Jakarta", country: "Indonesia",       lat: -6.21,  lon: 106.85,  pop: 41.9, region: "Asia-Pacific",  tz: "UTC+7" },
+        { name: "Dhaka", country: "Bangladesh",         lat: 23.81,  lon: 90.41,   pop: 36.6, region: "Asia-Pacific",  tz: "UTC+6" },
+        { name: "Tokyo", country: "Japan",         lat: 35.68,  lon: 139.69,  pop: 33.4, region: "Asia-Pacific",  tz: "UTC+9" },
+        { name: "New Delhi", country: "India",     lat: 28.61,  lon: 77.21,   pop: 30.2, region: "Asia-Pacific",  tz: "UTC+5:30" },
+        { name: "Shanghai", country: "China",      lat: 31.23,  lon: 121.47,  pop: 29.6, region: "Asia-Pacific",  tz: "UTC+8" },
+        { name: "Cairo", country: "Egypt",         lat: 30.04,  lon: 31.24,   pop: 25.6, region: "Africa",        tz: "UTC+2" },
+        { name: "Mumbai", country: "India",        lat: 19.08,  lon: 72.88,   pop: 20.2, region: "Asia-Pacific",  tz: "UTC+5:30" },
+        { name: "São Paulo", country: "Brazil",     lat: -23.55, lon: -46.63,  pop: 18.9, region: "South America", tz: "UTC−3" },
+        { name: "Beijing", country: "China",       lat: 39.90,  lon: 116.40,  pop: 17.0, region: "Asia-Pacific",  tz: "UTC+8" },
+        { name: "Moscow", country: "Russia",        lat: 55.76,  lon: 37.62,   pop: 14.5, region: "Europe",        tz: "UTC+3" },
+        { name: "New York", country: "United States",      lat: 40.71,  lon: -74.01,  pop: 13.9, region: "North America", tz: "UTC−5" },
+        { name: "Los Angeles", country: "United States",   lat: 34.05,  lon: -118.24, pop: 12.7, region: "North America", tz: "UTC−8" },
+        { name: "London", country: "United Kingdom",        lat: 51.51,  lon: -0.13,   pop: 10.4, region: "Europe",        tz: "UTC+0" },
+        { name: "Rio de Janeiro", country: "Brazil", label: "Rio", lat: -22.91, lon: -43.17, pop: 9.5, region: "South America", tz: "UTC−3" },
+        { name: "Paris", country: "France",         lat: 48.86,  lon: 2.35,    pop: 9.4,  region: "Europe",        tz: "UTC+1" },
+        { name: "Taipei", country: "Taiwan",        lat: 25.03,  lon: 121.56,  pop: 9.1,  region: "Asia-Pacific",  tz: "UTC+8" },
+        { name: "Chicago", country: "United States",       lat: 41.88,  lon: -87.63,  pop: 8.9,  region: "North America", tz: "UTC−6" },
+        { name: "Hong Kong", country: "China",     lat: 22.32,  lon: 114.17,  pop: 7.4,  region: "Asia-Pacific",  tz: "UTC+8" },
+        { name: "Surabaya", country: "Indonesia",      lat: -7.25,  lon: 112.74,  pop: 6.8,  region: "Asia-Pacific",  tz: "UTC+7" },
+        { name: "Toronto", country: "Canada",       lat: 43.65,  lon: -79.38,  pop: 6.1,  region: "North America", tz: "UTC−5" },
+        { name: "Houston", country: "United States",       lat: 29.76,  lon: -95.37,  pop: 6.1,  region: "North America", tz: "UTC−6" },
+        { name: "Miami", country: "United States",         lat: 25.76,  lon: -80.19,  pop: 6.0,  region: "North America", tz: "UTC−5" },
+        { name: "Singapore", country: "Singapore",     lat: 1.35,   lon: 103.82,  pop: 5.8,  region: "Asia-Pacific",  tz: "UTC+8" },
+        { name: "Sydney", country: "Australia",        lat: -33.87, lon: 151.21,  pop: 5.6,  region: "Asia-Pacific",  tz: "UTC+10" },
+        { name: "Milan", country: "Italy",         lat: 45.46,  lon: 9.19,    pop: 5.5,  region: "Europe",        tz: "UTC+1" },
+        { name: "Washington DC", country: "United States", lat: 38.91,  lon: -77.04,  pop: 5.2,  region: "North America", tz: "UTC−5" },
+        { name: "Boston", country: "United States",        lat: 42.36,  lon: -71.06,  pop: 5.0,  region: "North America", tz: "UTC−5" },
+        { name: "Cape Town", country: "South Africa",     lat: -33.92, lon: 18.42,   pop: 5.0,  region: "Africa",        tz: "UTC+2" },
+        { name: "San Francisco", country: "United States", lat: 37.77,  lon: -122.42, pop: 4.6,  region: "North America", tz: "UTC−8" },
+        { name: "Montreal", country: "Canada",      lat: 45.50,  lon: -73.57,  pop: 4.4,  region: "North America", tz: "UTC−5" },
+        { name: "Seattle", country: "United States",       lat: 47.61,  lon: -122.33, pop: 4.2,  region: "North America", tz: "UTC−8" },
+        { name: "Vancouver", country: "Canada",     lat: 49.28,  lon: -123.12, pop: 3.1,  region: "North America", tz: "UTC−8" },
+        { name: "Warsaw", country: "Poland",        lat: 52.23,  lon: 21.01,   pop: 3.1,  region: "Europe",        tz: "UTC+1" },
+        { name: "Lisbon", country: "Portugal",        lat: 38.72,  lon: -9.14,   pop: 3.1,  region: "Europe",        tz: "UTC+0" },
+        { name: "Amsterdam", country: "Netherlands",     lat: 52.37,  lon: 4.90,    pop: 3.0,  region: "Europe",        tz: "UTC+1" },
+        { name: "Munich", country: "Germany",        lat: 48.14,  lon: 11.58,   pop: 3.0,  region: "Europe",        tz: "UTC+1" },
+        { name: "Prague", country: "Czech Republic",        lat: 50.08,  lon: 14.42,   pop: 2.2,  region: "Europe",        tz: "UTC+1" },
+        { name: "Panama City", country: "Panama",   lat: 8.98,   lon: -79.52,  pop: 2.1,  region: "North America", tz: "UTC−5" },
+        { name: "Honolulu", country: "United States",      lat: 21.31,  lon: -157.86, pop: 1.0,  region: "North America", tz: "UTC−10" },
+        { name: "Edinburgh", country: "United Kingdom",     lat: 55.95,  lon: -3.19,   pop: 0.9,  region: "Europe",        tz: "UTC+0" },
+        { name: "Seoul", country: "South Korea",        lat: 37.57,  lon: 126.98,  pop: 22.5, region: "Asia-Pacific",  tz: "UTC+9" },
+        { name: "Rome", country: "Italy",         lat: 41.90,  lon: 12.50,   pop: 4.3,  region: "Europe",        tz: "UTC+1" },
+        { name: "Wellington", country: "New Zealand",     lat: -41.29, lon: 174.78,  pop: 0.4,  region: "Asia-Pacific",  tz: "UTC+12" },
+        { name: "Mexico City", country: "Mexico",    lat: 19.43,  lon: -99.13,  pop: 22.5, region: "North America", tz: "UTC−6" }
+      ];
+
+      var REGION_COLORS = {
+        "North America": "#D93A3A",
+        "South America": "#8e4aa8",
+        "Europe": "#2563EB",
+        "Asia-Pacific": "#D9A400",
+        "Africa": "#9C6642"
+      };
+
+      // Elevation in metres (standard city elevations, approximate).
+      var ELEV = {
+        "Jakarta": 8, "Surabaya": 5, "Dhaka": 10, "Tokyo": 40, "New Delhi": 216,
+        "Shanghai": 4, "Cairo": 23, "Mumbai": 14, "São Paulo": 760,
+        "Beijing": 44, "Moscow": 156, "New York": 10, "Los Angeles": 71,
+        "London": 11, "Rio de Janeiro": 2, "Paris": 35, "Taipei": 10,
+        "Chicago": 182, "Hong Kong": 30, "Toronto": 76, "Houston": 32,
+        "Miami": 2, "Singapore": 15, "Sydney": 58, "Milan": 122,
+        "Washington DC": 38, "Cape Town": 25, "Boston": 43,
+        "San Francisco": 16, "Seattle": 52, "Vancouver": 2,
+        "Amsterdam": -2, "Munich": 519, "Panama City": 2, "Honolulu": 6,
+        "Edinburgh": 47, "Montreal": 36, "Warsaw": 100, "Lisbon": 30,
+        "Prague": 235, "Seoul": 38, "Rome": 21, "Wellington": 10,
+        "Mexico City": 2240
+      };
+
+      // Label placements, hand-tuned per city: label point (lx, ly in map
+      // units) + anchor, chosen so no label's text crosses another city's
+      // dot or full-size population circle and labels never overlap each
+      // other; leader lines likewise route clear of other dots/circles
+      // and labels wherever the geometry allows.
+      // STANDING RULE — NO LEADER CROSSES ANOTHER LEADER: no two leader
+      // line segments may intersect, in EITHER view (dots-only and
+      // full-population geometry — the leader start point moves out to
+      // the circle edge in population view, so both must be checked).
+      // This pairwise segment-intersection check is part of the
+      // geometry audit for EVERY label placement change, including
+      // whenever a new city is added: re-run it over all pairs after
+      // any placement edit and fix every crossing it finds. Positions are also
+      // nudged so no leader line runs within 10° of horizontal or
+      // vertical, where the crosshair could overlap and hide it.
+      // EVERY label keeps a clearly visible leader: each label point
+      // sits far enough from its city that the drawn leader (dot edge
+      // to label in dots view, full-circle edge to label in population
+      // view) is at least ~8–10 units long — no stub or missing lines.
+      // Within those constraints the placements favour an EVEN SPREAD
+      // around dense clusters over the absolute shortest leader:
+      // labels fan out into open directions — Beijing's label sits
+      // above its city, freeing the space below for Shanghai's (pushed
+      // west, clear of its own big circle); the Europe cluster fans
+      // around (London west, Amsterdam north-east, Paris south-west,
+      // Munich east, Milan south-west); Rio's label goes north-east
+      // while São Paulo's goes south-west, on opposite sides of the
+      // pair. The stubborn cases are the giant-circle cities
+      // (Jakarta, Dhaka, New Delhi, Tokyo): a label must clear its
+      // own 24–28-unit population circle, which sets a floor on the
+      // leader length no placement can beat.
+      // The five later additions (Edinburgh, Montreal, Warsaw, Lisbon,
+      // Prague) re-balanced the Europe cluster around them: Edinburgh
+      // fans north-west of London, Amsterdam shifted north, Warsaw's
+      // label sits east below Moscow's big circle, Paris nudged up so
+      // Lisbon's circle clears it, and Lisbon fans south-west into the
+      // open Atlantic; Montreal's label sits north of its dot, with
+      // Toronto's label shifted west to clear Montreal's leader.
+      // Munich/Prague: an earlier layout (Prague south, Munich east)
+      // made their two leaders crisscross, so the pair was swapped —
+      // Prague's label now sits east of its dot and Munich's
+      // south-east of its own, fanning the two leaders apart; a full
+      // pairwise check over all 39 cities then confirmed no two
+      // leaders cross in either view.
+      // Surabaya sits only ~20 units east-south-east of Jakarta,
+      // INSIDE Jakarta's full-size population circle, and Jakarta's
+      // old south-east label pointed straight at Surabaya's dot — so
+      // the pair was re-fanned together: Jakarta's label moved
+      // north-east (990,288) and Surabaya's sits south-east
+      // (1000,348) over open sea, both leaders at ~44° with clearly
+      // visible lengths (Jakarta ~44 units dots view / ~19 in
+      // population view; Surabaya ~31 / ~23). Surabaya's leader
+      // necessarily exits Jakarta's circle on its way out —
+      // unavoidable, since its dot lies inside that circle. The full
+      // audit over all 40 cities (both views) confirmed no leader
+      // crossings and no new label/dot/circle collisions.
+      // The four build-15 additions were placed against the same
+      // audit: Seoul's label sits north-east of its dot (1055,145),
+      // high enough that its box clears Tokyo's full-size circle
+      // below it and clear east of Beijing's label, leader ~43°
+      // off horizontal, ~23 units long past its own circle's edge
+      // in Pop view; Rome's label sits south-west (610,198,
+      // end-anchored), below Milan's label and well clear of
+      // Cairo's big circle to the east (an earlier south-east
+      // spot overlapped that circle's edge), leader ~50° off
+      // horizontal; Mexico City's label
+      // sits south-west (250,275, end-anchored) in open space
+      // below Houston's label, leader ~64° off horizontal;
+      // Wellington's label sits south-west of its dot (1165,465,
+      // end-anchored) so the whole box stays inside the map's
+      // right edge, well below Sydney's label. A full pairwise
+      // check over all 44 cities (both views) confirmed no leader
+      // crossings and no label touching any dot, full-size
+      // circle, or other label.
+      // Cities not listed get a default label just right of the circle.
+      var LABELS = {
+        "Vancouver":     { lx: 182, ly: 152, anchor: "end" },
+        "Seattle":       { lx: 209, ly: 149, anchor: "start" },
+        "San Francisco": { lx: 188, ly: 194, anchor: "end" },
+        "Los Angeles":   { lx: 201, ly: 213, anchor: "end" },
+        "Chicago":       { lx: 288, ly: 170, anchor: "end" },
+        "Toronto":       { lx: 330, ly: 128, anchor: "end" },
+        "Montreal":      { lx: 362, ly: 120, anchor: "start" },
+        "Boston":        { lx: 386, ly: 152, anchor: "start" },
+        "New York":      { lx: 377, ly: 172, anchor: "start" },
+        "Washington DC": { lx: 352, ly: 196, anchor: "start" },
+        "Miami":         { lx: 350, ly: 222, anchor: "start" },
+        "Houston":       { lx: 273, ly: 220, anchor: "end" },
+        "London":        { lx: 568, ly: 118, anchor: "end" },
+        "Edinburgh":     { lx: 552, ly: 96,  anchor: "end" },
+        "Amsterdam":     { lx: 634, ly: 102, anchor: "start" },
+        "Paris":         { lx: 592, ly: 158, anchor: "end" },
+        "Lisbon":        { lx: 526, ly: 190, anchor: "end" },
+        "Munich":        { lx: 656, ly: 165, anchor: "start" },
+        "Prague":        { lx: 670, ly: 150, anchor: "start" },
+        "Warsaw":        { lx: 714, ly: 142, anchor: "start" },
+        "Milan":         { lx: 618, ly: 180, anchor: "end" },
+        "Rome":          { lx: 610, ly: 198, anchor: "end" },
+        "Moscow":        { lx: 748, ly: 128, anchor: "start" },
+        "Cairo":         { lx: 734, ly: 209, anchor: "start" },
+        "Beijing":       { lx: 975, ly: 137, anchor: "end" },
+        "Seoul":         { lx: 1055, ly: 145, anchor: "start" },
+        "Tokyo":         { lx: 1098, ly: 194, anchor: "start" },
+        "Shanghai":      { lx: 962, ly: 206, anchor: "end" },
+        "Taipei":        { lx: 1030, ly: 226, anchor: "start" },
+        "Hong Kong":     { lx: 996, ly: 241, anchor: "start" },
+        "Singapore":     { lx: 929, ly: 305, anchor: "end" },
+        "Jakarta":       { lx: 990, ly: 288, anchor: "start" },
+        "Surabaya":      { lx: 1000, ly: 348, anchor: "start" },
+        "Sydney":        { lx: 1120, ly: 426, anchor: "start" },
+        "Wellington":    { lx: 1165, ly: 465, anchor: "end" },
+        "New Delhi":     { lx: 827, ly: 219, anchor: "end" },
+        "Dhaka":         { lx: 917, ly: 254, anchor: "start" },
+        "Mumbai":        { lx: 837, ly: 267, anchor: "end" },
+        "São Paulo":     { lx: 404, ly: 408, anchor: "end" },
+        "Rio de Janeiro":{ lx: 486, ly: 352, anchor: "start" },
+        "Cape Town":     { lx: 679, ly: 420, anchor: "start" },
+        "Panama City":   { lx: 349, ly: 276, anchor: "start" },
+        "Mexico City":   { lx: 250, ly: 275, anchor: "end" },
+        "Honolulu":      { lx: 87,  ly: 235, anchor: "start" }
+      };
+
+      var W = 1200, H = 600;               // 360° x 180°, same px per degree on both axes
+      function X(lon) { return (lon + 180) / 360 * W; }
+      function Y(lat) { return (90 - lat) / 180 * H; }
+      function R(pop) { return 4.4 * Math.sqrt(pop); }   // area ∝ population
+
+      var SVGNS = "http://www.w3.org/2000/svg";
+      function el(tag, attrs, parent) {
+        var n = document.createElementNS(SVGNS, tag);
+        for (var k in attrs) n.setAttribute(k, attrs[k]);
+        if (parent) parent.appendChild(n);
+        return n;
+      }
+      // Growth-animation capability: the growth effects run as
+      // compositor-driven CSS transforms (see the growth engine
+      // below) — via the Web Animations API when it genuinely works
+      // on SVG elements, else via CSS transitions on the same
+      // transforms. Feature-test the real thing, not just the API's
+      // existence: run a tiny transform animation on a throwaway SVG
+      // circle and read back its computed transform mid-flight.
+      var HAS_WAAPI = (function () {
+        if (!(window.Element && Element.prototype.animate)) return false;
+        try {
+          var s = document.createElementNS(SVGNS, "svg");
+          var c = document.createElementNS(SVGNS, "circle");
+          c.setAttribute("r", 5);
+          c.setAttribute("class", "grow-c");
+          s.appendChild(c);
+          document.body.appendChild(s);
+          var a = c.animate(
+            [{ transform: "scale(0)" }, { transform: "scale(1)" }],
+            { duration: 1000, fill: "forwards" });
+          a.currentTime = 500;
+          var t = getComputedStyle(c).transform;
+          a.cancel();
+          document.body.removeChild(s);
+          return !!t && t !== "none";
+        } catch (e) { return false; }
+      })();
+      function cssVar(name) {
+        return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      }
+      // Brighten a #rrggbb colour for the centre dots: convert to HSL,
+      // boost saturation and lightness, convert back — the result is a
+      // vivid version of the same hue, clearly brighter than the softer
+      // translucent population-circle fill in the base region colour.
+      function brighten(hex) {
+        var n = parseInt(hex.slice(1), 16);
+        var r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+        var max = Math.max(r, g, b), min = Math.min(r, g, b);
+        var l = (max + min) / 2, h = 0, s = 0;
+        if (max !== min) {
+          var d = max - min;
+          s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+          if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+          else if (max === g) h = ((b - r) / d + 2) / 6;
+          else h = ((r - g) / d + 4) / 6;
+        }
+        s = Math.min(1, s * 1.35 + 0.08);
+        l = Math.min(0.62, l * 1.18 + 0.06);
+        function hue2rgb(p, q, t) {
+          if (t < 0) t += 1;
+          if (t > 1) t -= 1;
+          if (t < 1 / 6) return p + (q - p) * 6 * t;
+          if (t < 1 / 2) return q;
+          if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+          return p;
+        }
+        var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        var p = 2 * l - q;
+        function ch(v) { return Math.round(Math.max(0, Math.min(255, v * 255))); }
+        return "rgb(" + ch(hue2rgb(p, q, h + 1 / 3)) + "," +
+          ch(hue2rgb(p, q, h)) + "," + ch(hue2rgb(p, q, h - 1 / 3)) + ")";
+      }
+      function fmtLat(lat) { return Math.abs(lat).toFixed(2) + "° " + (lat >= 0 ? "N" : "S"); }
+      function fmtElev(m) { return (m < 0 ? "−" + Math.abs(m) : m) + " m"; }
+      // IANA time zones for all cities — used for the pop-up's real
+      // local time so daylight saving is handled correctly (e.g.
+      // Los Angeles is UTC−7 in October, not its standard UTC−8).
+      var IANA = {
+        "Jakarta": "Asia/Jakarta", "Surabaya": "Asia/Jakarta", "Dhaka": "Asia/Dhaka", "Tokyo": "Asia/Tokyo",
+        "New Delhi": "Asia/Kolkata", "Shanghai": "Asia/Shanghai", "Cairo": "Africa/Cairo",
+        "Mumbai": "Asia/Kolkata", "São Paulo": "America/Sao_Paulo", "Beijing": "Asia/Shanghai",
+        "Moscow": "Europe/Moscow", "New York": "America/New_York", "Los Angeles": "America/Los_Angeles",
+        "London": "Europe/London", "Rio de Janeiro": "America/Sao_Paulo", "Paris": "Europe/Paris",
+        "Taipei": "Asia/Taipei", "Chicago": "America/Chicago", "Hong Kong": "Asia/Hong_Kong",
+        "Toronto": "America/Toronto", "Houston": "America/Chicago", "Miami": "America/New_York",
+        "Singapore": "Asia/Singapore", "Sydney": "Australia/Sydney", "Milan": "Europe/Rome",
+        "Washington DC": "America/New_York", "Boston": "America/New_York", "Cape Town": "Africa/Johannesburg",
+        "San Francisco": "America/Los_Angeles", "Seattle": "America/Los_Angeles", "Vancouver": "America/Vancouver",
+        "Amsterdam": "Europe/Amsterdam", "Munich": "Europe/Berlin", "Panama City": "America/Panama",
+        "Honolulu": "Pacific/Honolulu", "Edinburgh": "Europe/London", "Montreal": "America/Toronto",
+        "Warsaw": "Europe/Warsaw", "Lisbon": "Europe/Lisbon", "Prague": "Europe/Prague",
+        "Seoul": "Asia/Seoul", "Rome": "Europe/Rome", "Wellington": "Pacific/Auckland",
+        "Mexico City": "America/Mexico_City"
+      };
+      // One formatter per zone, built lazily and reused — a
+      // DateTimeFormat is comparatively expensive to construct and
+      // the pop-up can open many times.
+      var tzFormatters = {};
+      function fmtLocalTime(c) {
+        var zone = c.iana || IANA[c.name];
+        if (!zone) return "";
+        try {
+          var f = tzFormatters[zone];
+          if (!f) {
+            f = new Intl.DateTimeFormat("en-GB", {
+              timeZone: zone, hour: "2-digit", minute: "2-digit", hourCycle: "h23"
+            });
+            tzFormatters[zone] = f;
+          }
+          return f.format(new Date());
+        } catch (e) { return ""; }
+      }
+
+      var svg = document.getElementById("map");
+      var tooltip = document.getElementById("tooltip");
+      var wrap = document.getElementById("mapWrap");
+
+      // ---- Static frame (background, grid, axis labels) ----
+      var frame = el("g", {}, svg);
+      el("rect", { x: 0, y: 0, width: W, height: H, fill: "var(--map-bg)" }, frame);
+      // Alternating time-zone bands (Time Zone mode only): every
+      // other 15° zone column gets a subtle neutral tint so
+      // neighbouring zones are distinguishable. In the background
+      // layer — above the plain background, below the tropics/polar
+      // tints, gridlines, cities, and the Day/Night shading (which
+      // lives in the view group above the whole frame).
+      var tzBands = el("g", { style: "display:none; pointer-events:none" }, frame);
+      // Each time zone is a 15° band CENTRED on its UTC meridian:
+      // offset k spans [15k − 7.5°, 15k + 7.5°]. UTC−8 therefore
+      // spans −127.5°…−112.5°, holding Los Angeles (−118.24) and
+      // San Francisco (−122.42) in the same band. The map edges cut
+      // the UTC−12 and UTC+12 bands in half (7.5° visible each);
+      // both edge pieces share the same parity (k even), so the
+      // checker is consistent across the ±180° seam.
+      for (var zk = -12; zk <= 12; zk++) {
+        if (((zk % 2) + 2) % 2 === 0) continue;   // tint alternate (odd-k) bands
+        var bandL = Math.max(-180, zk * 15 - 7.5);
+        var bandR = Math.min(180, zk * 15 + 7.5);
+        el("rect", { x: X(bandL), y: 0, width: X(bandR) - X(bandL), height: H,
+          fill: "var(--tz-band)" }, tzBands);
+      }
+      // Tropics band: Tropic of Cancer (+23.44°) to Tropic of Capricorn
+      // (−23.44°), full width, behind gridlines and cities; always visible.
+      el("rect", { x: 0, y: Y(23.44), width: W, height: Y(-23.44) - Y(23.44),
+        fill: "var(--tropics-fill)", style: "pointer-events:none" }, frame);
+      // Polar regions: north of the Arctic Circle (+66.56°) to the top of
+      // the map, and south of the Antarctic Circle (−66.56°) to the bottom,
+      // in a soft cool tint matching the circle lines; always visible.
+      el("rect", { x: 0, y: 0, width: W, height: Y(66.56),
+        fill: "var(--polar-fill)", style: "pointer-events:none" }, frame);
+      el("rect", { x: 0, y: Y(-66.56), width: W, height: H - Y(-66.56),
+        fill: "var(--polar-fill)", style: "pointer-events:none" }, frame);
+
+      var grid = el("g", {}, frame);
+      var lon, lat, i;
+      // Vertical gridlines + bottom axis labels exist in two modes,
+      // switched by the Axis toggle (see setAxisMode below):
+      //  - Longitude (default): lines every 30°, labelled in degrees.
+      //  - Time Zone: zone bands CENTRED on their UTC meridians, so
+      //    lines run at the band edges (every 15°, offset 7.5° from
+      //    the meridians), and the labels — every 30° (every two
+      //    zones), as UTC offsets — sit in the MIDDLE of their
+      //    bands at longitude 15 × offset (the loop below: the
+      //    every-30° positions are exactly the even offsets'
+      //    band centres).
+      var gridLon = el("g", {}, grid);
+      var gridTz = el("g", { style: "display:none" }, grid);
+      for (lon = -180; lon <= 180; lon += 15) {
+        var inLon = lon % 30 === 0;
+        if (inLon) {
+          el("line", { x1: X(lon), y1: 0, x2: X(lon), y2: H,
+            stroke: "var(--grid)", "stroke-width": lon === 0 ? 1.4 : 0.7 }, gridLon);
+        }
+      }
+      // Time Zone mode: vertical lines at the band EDGES — every
+      // 15°, offset 7.5° from the UTC meridians (−172.5, −157.5, …,
+      // +172.5) — plus the map edges at ±180. No line sits on a
+      // meridian: 0° is the centre of the UTC band, not a boundary.
+      var tzEdges = [-180];
+      for (var te = -172.5; te <= 172.5; te += 15) tzEdges.push(te);
+      tzEdges.push(180);
+      for (var ti = 0; ti < tzEdges.length; ti++) {
+        el("line", { x1: X(tzEdges[ti]), y1: 0, x2: X(tzEdges[ti]), y2: H,
+          stroke: "var(--grid)", "stroke-width": 0.7 }, gridTz);
+      }
+      var axisLonG = el("g", {}, grid);
+      var axisTzG = el("g", { style: "display:none" }, grid);
+      // Current local times along the TOP of the map (Time Zone mode
+      // only): one clock per labelled zone, at the same x position
+      // and anchor as its bottom UTC label — i.e. centred on the
+      // zone's band. Contents are filled by updateTzTimes() below.
+      var axisTzTopG = el("g", { style: "display:none" }, grid);
+      var tzTimeEls = [];
+      for (lon = -180; lon <= 180; lon += 30) {
+        var anchor = lon === -180 ? "start" : (lon === 180 ? "end" : "middle");
+        var tx = lon === -180 ? 3 : (lon === 180 ? W - 3 : X(lon));
+        var lt2 = el("text", { x: tx, y: H - 6, "text-anchor": anchor,
+          "font-size": 10.5, fill: "var(--axis-label)" }, axisLonG);
+        lt2.textContent = lon === 0 ? "0°" :
+          Math.abs(lon) + "°" + (lon < 0 ? "W" : "E");
+        var t = el("text", { x: tx, y: H - 6, "text-anchor": anchor,
+          "font-size": 10.5, fill: "var(--axis-label)" }, axisTzG);
+        var off = lon / 15;   // time zone = longitude ÷ 15
+        t.textContent = off === 0 ? "UTC" : "UTC" + (off > 0 ? "+" : "−") + Math.abs(off);
+        var tt = el("text", { x: tx, y: 16, "text-anchor": anchor,
+          "font-size": 10.5, fill: "var(--axis-label)" }, axisTzTopG);
+        tzTimeEls.push({ el: tt, off: off });
+      }
+      // Fills the top clocks with each zone's CURRENT local time,
+      // HH:MM 24-hour, computed from the live UTC clock plus the
+      // zone's offset. Refreshed every 30 s (and on entering Time
+      // Zone mode) so the displayed minute never goes stale. Guards:
+      // in Longitude mode the clocks and midnight line are hidden,
+      // so the tick does nothing (setAxisMode calls this on entering
+      // Time Zone mode, so they are current whenever they appear);
+      // clock texts rewrite only when the minute changed. tzMode is
+      // declared later — the typeof guard covers the first call.
+      function pad2(n) { return (n < 10 ? "0" : "") + n; }
+      var lastClockMin = -1;
+      function updateTzTimes() {
+        if (typeof tzMode !== "undefined" && !tzMode) return;
+        var now = new Date();
+        var utcMin = now.getUTCHours() * 60 + now.getUTCMinutes();
+        if (utcMin !== lastClockMin) {
+          lastClockMin = utcMin;
+          for (var ti2 = 0; ti2 < tzTimeEls.length; ti2++) {
+            var m = ((utcMin + tzTimeEls[ti2].off * 60) % 1440 + 1440) % 1440;
+            tzTimeEls[ti2].el.textContent =
+              pad2(Math.floor(m / 60)) + ":" + pad2(m % 60);
+          }
+        }
+        // Midnight line (Time Zone mode only): the longitude where
+        // local time is exactly 00:00 right now is
+        // λ = −15° × (UTC hours), normalised into −180…+180.
+        // midnightLine is created later in the view layer; guard the
+        // first call, which runs before it exists.
+        if (typeof midnightLine !== "undefined" && midnightLine) {
+          var utcH = now.getUTCHours() + now.getUTCMinutes() / 60 +
+            now.getUTCSeconds() / 3600;
+          var lam = -15 * utcH;
+          lam = ((lam + 180) % 360 + 360) % 360 - 180;
+          var mx = X(lam);
+          midnightLine.setAttribute("x1", mx);
+          midnightLine.setAttribute("x2", mx);
+          midnightLine.setAttribute("data-lon", lam.toFixed(2));
+        }
+      }
+      updateTzTimes();
+      setInterval(updateTzTimes, 30000);
+      var axisHead = el("text", { x: W - 3, y: H - 20, "text-anchor": "end",
+        "font-size": 10.5, fill: "var(--axis-label)", "letter-spacing": "0.05em" }, grid);
+      axisHead.textContent = "Longitude";
+      for (lat = -75; lat <= 75; lat += 15) {
+        var isEq = lat === 0;
+        el("line", { x1: 0, y1: Y(lat), x2: W, y2: Y(lat),
+          stroke: isEq ? "var(--equator)" : "var(--grid)",
+          "stroke-width": isEq ? 1.6 : 0.7,
+          "stroke-dasharray": isEq ? "7 4" : "none" }, grid);
+        var lt = el("text", { x: 6, y: Y(lat) - 4,
+          "font-size": 10.5, fill: "var(--axis-label)" }, grid);
+        lt.textContent = lat === 0 ? "0°" : Math.abs(lat) + "°" + (lat < 0 ? "S" : "N");
+      }
+      // Tropic boundaries: subtle dashed lines in a warm deeper tone.
+      el("line", { x1: 0, y1: Y(23.44), x2: W, y2: Y(23.44),
+        stroke: "var(--tropics-line)", "stroke-width": 1.1,
+        "stroke-dasharray": "6 4", "stroke-opacity": 0.9,
+        style: "pointer-events:none" }, frame);
+      el("line", { x1: 0, y1: Y(-23.44), x2: W, y2: Y(-23.44),
+        stroke: "var(--tropics-line)", "stroke-width": 1.1,
+        "stroke-dasharray": "6 4", "stroke-opacity": 0.9,
+        style: "pointer-events:none" }, frame);
+      // Polar circles: same dashed style, contrasting cool tone.
+      el("line", { x1: 0, y1: Y(66.56), x2: W, y2: Y(66.56),
+        stroke: "var(--polar-line)", "stroke-width": 1.1,
+        "stroke-dasharray": "6 4", "stroke-opacity": 0.9,
+        style: "pointer-events:none" }, frame);
+      el("line", { x1: 0, y1: Y(-66.56), x2: W, y2: Y(-66.56),
+        stroke: "var(--polar-line)", "stroke-width": 1.1,
+        "stroke-dasharray": "6 4", "stroke-opacity": 0.9,
+        style: "pointer-events:none" }, frame);
+      el("rect", { x: 0.5, y: 0.5, width: W - 1, height: H - 1, fill: "none",
+        stroke: "var(--grid-major)", "stroke-width": 1 }, frame);
+
+      // ---- Map content (static; no zoom or pan) ----
+      var view = el("g", {}, svg);
+
+      // Day/Night overlay: a group at the very back of the view —
+      // above the frame's tropics/polar tints, below the legends,
+      // circles, dots and labels. Its terminator path is (re)built by
+      // renderNight() each time the Day/Night button is switched on.
+      var defs = el("defs", {}, svg);
+      // Soft edge for the night shading: a small blur on the night
+      // group, applied after its path copies composite, so the
+      // terminator fades gently instead of ending in a hard line.
+      var nightBlur = el("filter", { id: "nightBlur",
+        x: "-5%", y: "-5%", width: "110%", height: "110%" }, defs);
+      el("feGaussianBlur", { stdDeviation: 3.5 }, nightBlur);
+      var nightG = el("g", { style: "display:none; pointer-events:none",
+        filter: "url(#nightBlur)" }, view);
+
+      // ---- Home band highlight (device time zone) ----
+      // Drawn ABOVE the checker/tropics/polar tints (in frame) and
+      // ABOVE the Day/Night shading (nightG, just before this group
+      // in view) but BELOW legends, leaders, population circles,
+      // elevation lines, dots and labels — so the band reads in
+      // both day and night while cities inside it stay fully
+      // readable. Just a soft warm-gold wash over the region —
+      // no border or edge lines. Time Zone mode only; hidden in
+      // Longitude mode via setAxisMode().
+      // The band is chosen from the device's own time zone ONLY —
+      // Intl.DateTimeFormat().resolvedOptions().timeZone — mapped
+      // to its STANDARD-time offset: the smaller of the zone's
+      // January and July offsets, so the band stays on the zone's
+      // home band all year (e.g. Los Angeles lights UTC−8 even
+      // while PDT has its clock at UTC−7). Half- and quarter-hour
+      // zones are rounded to the nearest whole-hour band. If the
+      // zone name is unavailable, the device's current UTC offset
+      // is used instead. The device's geographic location is never
+      // requested. Computed ONCE on load — the device's zone cannot
+      // change while the page is open — so later calls (entering
+      // Time Zone mode) return immediately.
+      var homeTzG = el("g", { id: "homeTzG", style: "display:none; pointer-events:none" }, view);
+      var homeTzRect = el("rect", { id: "homeTzRect", x: 0, y: 0, width: 0, height: H,
+        fill: "var(--home-tz-fill)" }, homeTzG);
+      var homeBandK = null;
+      // UTC offset (in hours, fractional) of an IANA zone at a
+      // given instant, derived from Intl formatting: render the
+      // instant in the zone, reinterpret the wall-clock fields as
+      // UTC, and the difference is the offset.
+      function zoneOffsetHours(zone, date) {
+        var parts = new Intl.DateTimeFormat("en-US", {
+          timeZone: zone, hourCycle: "h23",
+          year: "numeric", month: "2-digit", day: "2-digit",
+          hour: "2-digit", minute: "2-digit", second: "2-digit"
+        }).formatToParts(date);
+        var p = {};
+        for (var pi = 0; pi < parts.length; pi++) p[parts[pi].type] = parts[pi].value;
+        var asUTC = Date.UTC(+p.year, +p.month - 1, +p.day,
+          (+p.hour) % 24, +p.minute, +p.second);
+        return (asUTC - Math.floor(date.getTime() / 1000) * 1000) / 3600000;
+      }
+      // Band index k for the device's time zone: its standard
+      // offset (smaller of January/July) rounded to the nearest
+      // whole hour, clamped to −12…+12.
+      function deviceBandIndex() {
+        var off = null;
+        try {
+          var zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          if (zone) {
+            var yr = new Date().getUTCFullYear();
+            var jan = zoneOffsetHours(zone, new Date(Date.UTC(yr, 0, 15, 12)));
+            var jul = zoneOffsetHours(zone, new Date(Date.UTC(yr, 6, 15, 12)));
+            off = Math.min(jan, jul);
+          }
+        } catch (e) { off = null; }
+        if (off === null || !isFinite(off)) {
+          off = -new Date().getTimezoneOffset() / 60;   // current-offset fallback
+        }
+        var k = Math.round(off);
+        if (k < -12) k = -12;
+        if (k > 12) k = 12;
+        return k;
+      }
+      function updateHomeTzBand() {
+        if (homeBandK !== null) return;   // already computed — see above
+        var k = deviceBandIndex();
+        homeBandK = k;
+        var bandL = Math.max(-180, k * 15 - 7.5);
+        var bandR = Math.min(180, k * 15 + 7.5);
+        var xL = X(bandL), xR = X(bandR);
+        homeTzRect.setAttribute("x", xL);
+        homeTzRect.setAttribute("width", Math.max(0, xR - xL));
+        homeTzG.setAttribute("data-offset", String(k));
+        homeTzG.setAttribute("data-band", bandL + "," + bandR);
+      }
+      updateHomeTzBand();
+
+      // Midnight line (Time Zone mode only): a thin white vertical
+      // line across the full map height at the moving midnight
+      // meridian — where local time is 00:00 and the calendar date
+      // rolls over. Drawn above the zone bands and the Day/Night
+      // shading but below legends, leaders, circles, dots and
+      // labels, so cities stay readable. Its x position is set by
+      // updateTzTimes() on the same 30 s tick as the top clocks;
+      // visibility is toggled by setAxisMode().
+      var midnightG = el("g", { id: "midnightG", style: "display:none; pointer-events:none" }, view);
+      var midnightLine = el("line", { id: "midnightLine",
+        x1: 0, y1: 0, x2: 0, y2: H,
+        stroke: "#ffffff", "stroke-width": 1.2, "stroke-opacity": 0.60 }, midnightG);
+      updateTzTimes();   // position the line now; the 30 s tick keeps it drifting
+
+      // Legends, drawn inside the map along its bottom edge as ONE
+      // centred row of boxed panels, side by side:
+      //   [population scale] [elevation scale]
+      // There is no region colour key — the dot colours read as
+      // continents on their own. The population panel shows only in
+      // population mode and the elevation panel only in elevation
+      // mode; with both modes off no panels show at all.
+      // layoutLegends() re-centres the row whenever the visible set
+      // changes, with every box's bottom on the same line just above
+      // the axis tick labels — clear of every city dot, label and
+      // full-size population circle (the nearest, Cape Town's label,
+      // ends well above the row's top edge).
+      // Each panel is drawn in local coordinates (box top-left at
+      // 0,0) inside its own group; layoutLegends() assigns the
+      // transforms. The population sample circles and elevation
+      // sample lines are TRUE SCALE references — exactly the sizes
+      // they have on the map itself; only the text, padding and
+      // spacing around them are compact.
+      var legend = el("g", { style: "display:none" }, view);
+      var LEG_ROW_BOTTOM = 576;   // the panels' shared bottom edge
+      var LEG_GAP = 10;
+      var LEG_INK = cssVar("--leg-ink") || "#46586a";   // text/sample tone on the legend panels
+      // Both legend panels share ONE background: a light whitish
+      // wash — white fill at 10% opacity — with the usual thin
+      // border, so each reads as a distinct panel against the map
+      // without hiding what is behind it. Text and samples stay
+      // fully opaque (LEG_INK is scheme-aware so the panel text
+      // stays legible on the light wash in dark mode too).
+      // Population scale panel: the same whitish wash as the other
+      // panels (white at 10% opacity) with the usual thin border;
+      // its text and sample outlines use LEG_INK, legible on the
+      // whitish ground in both colour schemes. Sample circles stand
+      // on a common baseline at their true map radii.
+      var scaleG = el("g", { style: "display:none" }, legend);
+      var samples = [5, 10, 20, 40];
+      var scaleContentW = -10;
+      for (i = 0; i < samples.length; i++) scaleContentW += 2 * R(samples[i]) + 10;
+      var SCALE_W = scaleContentW + 18, SCALE_H = 96;
+      var SCALE_BASE = 76;   // local y the sample circles stand on
+      el("rect", { x: 0, y: 0, width: SCALE_W, height: SCALE_H, rx: 6,
+        fill: "#ffffff", "fill-opacity": 0.10,
+        stroke: "var(--line)", "stroke-width": 1 }, scaleG);
+      var legTitle = el("text", { x: SCALE_W / 2, y: 13, "text-anchor": "middle",
+        "font-size": 9.5, fill: LEG_INK, "letter-spacing": "0.05em" }, scaleG);
+      legTitle.textContent = "CIRCLE AREA = POPULATION";
+      var scx = 9;
+      for (i = 0; i < samples.length; i++) {
+        var sr = R(samples[i]);
+        el("circle", { cx: scx + sr, cy: SCALE_BASE - sr, r: sr, fill: "none",
+          stroke: LEG_INK, "stroke-width": 1.1 }, scaleG);
+        var st = el("text", { x: scx + sr, y: SCALE_BASE + 13, "text-anchor": "middle",
+          "font-size": 9.5, fill: LEG_INK }, scaleG);
+        st.textContent = samples[i] + "M";
+        scx += 2 * sr + 10;
+      }
+      // Elevation scale panel: the same whitish wash treatment as
+      // the other panels. Sample vertical lines stand on a
+      // common baseline, drawn at the same scale as the map's
+      // elevation lines (length = value / 760 * the maximum line
+      // length); the city lines themselves carry region colours.
+      var elevLegendG = el("g", { style: "display:none" }, legend);
+      var elevSamples = [200, 400, 600];
+      var elevMaxLen = H * 0.12;
+      var elevSpacing = 44;
+      var elevSpan = (elevSamples.length - 1) * elevSpacing;
+      var ELEV_W = elevSpan + 56, ELEV_H = 97;
+      var ELEV_BASE = 77;   // local y the sample lines stand on
+      el("rect", { x: 0, y: 0, width: ELEV_W, height: ELEV_H, rx: 6,
+        fill: "#ffffff", "fill-opacity": 0.10,
+        stroke: "var(--line)", "stroke-width": 1 }, elevLegendG);
+      var elevCap = el("text", { x: ELEV_W / 2, y: 13, "text-anchor": "middle",
+        "font-size": 9.5, fill: LEG_INK, "letter-spacing": "0.05em" }, elevLegendG);
+      elevCap.textContent = "LINE LENGTH = ELEVATION";
+      el("line", { x1: 12, y1: ELEV_BASE, x2: ELEV_W - 12, y2: ELEV_BASE,
+        stroke: LEG_INK, "stroke-width": 1.1 }, elevLegendG);
+      for (i = 0; i < elevSamples.length; i++) {
+        var elen = elevSamples[i] / 760 * elevMaxLen;
+        var ex = 28 + i * elevSpacing;
+        el("line", { x1: ex, y1: ELEV_BASE, x2: ex, y2: ELEV_BASE - elen,
+          stroke: LEG_INK, "stroke-width": 2, "stroke-linecap": "round" }, elevLegendG);
+        var et = el("text", { x: ex, y: ELEV_BASE + 13, "text-anchor": "middle",
+          "font-size": 9.5, fill: LEG_INK }, elevLegendG);
+        et.textContent = elevSamples[i] + " m";
+      }
+      // Legend row layout: the visible panels side by side as one
+      // centred group, bottoms aligned on LEG_ROW_BOTTOM. Called
+      // from renderPop and renderElev — popScale / elevScale /
+      // popOn / elevOn are defined below and are always initialised
+      // before either render runs — and once at startup. The layout
+      // depends only on WHICH panels are visible, so the last pair
+      // is cached: repeat calls (every animation tick) write nothing.
+      var legPair = null;   // "p"/"e" flags of the last laid-out pair
+      function layoutLegends() {
+        var popShow = popScale > 0 || popOn;
+        var elevShow = elevScale > 0 || elevOn;
+        var pair = (popShow ? "p" : "") + (elevShow ? "e" : "");
+        if (pair === legPair) return;
+        legPair = pair;
+        legend.style.display = pair ? "" : "none";
+        scaleG.style.display = popShow ? "" : "none";
+        elevLegendG.style.display = elevShow ? "" : "none";
+        var total = (popShow ? SCALE_W : 0) + (elevShow ? ELEV_W : 0) +
+          (popShow && elevShow ? LEG_GAP : 0);
+        var lx = (W - total) / 2;
+        if (popShow) {
+          scaleG.setAttribute("transform",
+            "translate(" + lx + " " + (LEG_ROW_BOTTOM - SCALE_H) + ")");
+          lx += SCALE_W + LEG_GAP;
+        }
+        if (elevShow) {
+          elevLegendG.setAttribute("transform",
+            "translate(" + lx + " " + (LEG_ROW_BOTTOM - ELEV_H) + ")");
+        }
+      }
+
+      // Leader lines first (under circles).
+      var DOT_R = 2.8;   // centre-dot radius, in map units
+      var leaders = el("g", { stroke: "var(--leader)", "stroke-width": 0.9 }, view);
+      // Population circles start hidden: the default view is dots only.
+      var circlesG = el("g", { style: "display:none" }, view);
+      var labelsG = el("g", { "font-size": 11.5, fill: "var(--map-label)",
+        "font-weight": 600, "paint-order": "stroke",
+        stroke: "var(--map-bg)", "stroke-width": 3, "stroke-linejoin": "round" }, view);
+
+      CITIES.forEach(function (c) {
+        c.x = X(c.lon); c.y = Y(c.lat); c.r = R(c.pop);
+        c.elev = ELEV[c.name] || 0;
+        c.iana = IANA[c.name] || null;
+        // Elevation line length ∝ elevation, linear scale: São Paulo
+        // (760 m, the highest) gets 12% of the map height; Amsterdam
+        // (−2 m, below sea level) clamps to no line.
+        c.elevLen = Math.max(0, c.elev) / 760 * H * 0.12;
+        var spec = LABELS[c.name] || LABELS[c.name.replace(/\*$/, "")];
+        if (spec) {
+          c.lx = spec.lx; c.ly = spec.ly; c.anchor = spec.anchor;
+          var dx = c.lx - c.x, dy = c.ly - c.y;
+          var dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist > DOT_R) {
+            // The line starts at the centre dot's edge; the population
+            // animation moves the start point out to the growing
+            // circle's edge (and back) — see renderPop().
+            c.leaderDX = dx; c.leaderDY = dy; c.leaderDist = dist;
+            c.leaderEl = el("line", { x1: c.x + dx / dist * DOT_R,
+              y1: c.y + dy / dist * DOT_R, x2: c.lx, y2: c.ly - 3 }, leaders);
+          }
+        } else {
+          c.lx = c.x + c.r + 5; c.ly = c.y + 4; c.anchor = "start";
+        }
+      });
+
+      CITIES.forEach(function (c) {
+        // Circles are created at full radius and sized purely by a
+        // compositor-driven transform scale (see the growth engine
+        // below); they start scaled to zero, i.e. hidden in the dot.
+        c.circ = el("circle", { cx: c.x, cy: c.y, r: c.r,
+          "class": "grow-c",
+          fill: REGION_COLORS[c.region], "fill-opacity": 0.78,
+          stroke: REGION_COLORS[c.region], "stroke-width": 1.2,
+          style: "cursor:pointer" }, circlesG);
+        c.circ.style.transform = "scale(0)";
+      });
+
+      // Centre dots: drawn last, exactly on each city's lat/lon point — a small
+      // solid dot in a brighter, more vivid shade of the city's own region
+      // colour, so it stands out from the softer translucent population
+      // circles; no outline. Each dot keeps a reference plus its original
+      // fill so the highlight (bright yellow while its pop-up is open) can
+      // restore it afterwards.
+      // Elevation lines: one thin vertical line per city in the city's
+      // own bright dot colour, drawn just under the dots so each line
+      // appears to grow out of its dot (on top of any population
+      // circle). Lengths are driven by the Elevation toggle below.
+      var elevG = el("g", { style: "display:none; pointer-events:none" }, view);
+      var dotsG = el("g", { style: "pointer-events:none" }, view);
+      CITIES.forEach(function (c) {
+        c.dotFill = brighten(REGION_COLORS[c.region]);
+        c.elevLine = el("line", { x1: c.x, y1: c.y, x2: c.x,
+          y2: c.y - c.elevLen, "class": "grow-l",
+          stroke: c.dotFill, "stroke-width": 2, "stroke-linecap": "round",
+          "stroke-opacity": 0.9 }, elevG);
+        c.elevLine.style.transform = "scaleY(0)";
+        c.dot = el("circle", { cx: c.x, cy: c.y, r: DOT_R, fill: c.dotFill }, dotsG);
+      });
+
+      CITIES.forEach(function (c) {
+        var t = el("text", { x: c.lx, y: c.ly, "text-anchor": c.anchor,
+          style: "pointer-events:visiblePainted; cursor:pointer" }, labelsG);
+        t.textContent = c.label || c.name;
+        c.labelEl = t;
+        // Clicking the name behaves exactly like clicking the dot:
+        // same pop-up, yellow highlight and persistent crosshair.
+        // Stop propagation so the SVG's nearest-centre handler
+        // (which measures distance from the dot, far from the label)
+        // doesn't also fire and undo the selection.
+        t.addEventListener("click", function (ev) {
+          ev.stopPropagation();
+          showTip(c, ev);
+        });
+        // Leader lines get the same click behaviour when present.
+        if (c.leaderEl) {
+          c.leaderEl.style.cursor = "pointer";
+          c.leaderEl.style.pointerEvents = "stroke";
+          c.leaderEl.addEventListener("click", function (ev) {
+            ev.stopPropagation();
+            showTip(c, ev);
+          });
+        }
+      });
+
+      // Latitude-band annotations at the left edge, just inside their
+      // lines (equator-ward side). They live in labelsG so the Labels
+      // toggle hides/shows them with the city labels; the tint bands
+      // and all four boundary lines themselves stay always visible.
+      var annoSpecs = [
+        { text: "Arctic Circle (66.56° N)",       x: 38,  y: Y(66.56) + 12,  fill: "var(--polar-line)" },
+        // Cancer annotation starts east of Honolulu (dot at x≈74, label
+        // spanning roughly x 46–102 at this latitude) so neither the dot
+        // nor the label overprints it; still on the left side of the map.
+        // With the latitude added it ends around x≈295 — clear of
+        // Miami's label (x≈350) and just below Houston's (baseline
+        // y≈220 vs this y≈234), so no nudge was needed.
+        { text: "Tropic of Cancer (23.44° N)",    x: 148, y: Y(23.44) + 12,  fill: "var(--tropics-line)" },
+        { text: "Tropic of Capricorn (23.44° S)", x: 38,  y: Y(-23.44) - 4,  fill: "var(--tropics-line)" },
+        // Antarctic annotation sits in the open lower-left area of
+        // the map at this latitude, west of the legend row. With the
+        // latitude added it ends around x≈331, still west of the
+        // widest legend row (Pop + Elev on, starting x≈428).
+        { text: "Antarctic Circle (66.56° S)",    x: 186, y: Y(-66.56) - 4,  fill: "var(--polar-line)" }
+      ];
+      annoSpecs.forEach(function (a) {
+        var at = el("text", { x: a.x, y: a.y, "text-anchor": "start",
+          "font-size": 10.5, "font-weight": 500, fill: a.fill,
+          "letter-spacing": "0.02em", style: "pointer-events:none" }, labelsG);
+        at.textContent = a.text;
+      });
+
+      // Crosshair lines for city selections (map or list clicks): one
+      // vertical and one horizontal yellow line across the whole map,
+      // crossing at the selected city. Stroke width matches the
+      // regular gridlines exactly (0.7 units).
+      var crosshairG = el("g", { style: "pointer-events:none; display:none" }, view);
+      var crossV = el("line", { x1: 0, y1: 0, x2: 0, y2: H,
+        stroke: "#FFD400", "stroke-width": 0.7, "stroke-opacity": 0.95 }, crosshairG);
+      var crossH = el("line", { x1: 0, y1: 0, x2: W, y2: 0,
+        stroke: "#FFD400", "stroke-width": 0.7, "stroke-opacity": 0.95 }, crosshairG);
+
+      // ---- City selection: highlight + detail pop-up + crosshair ----
+      // Both surfaces draw the same yellow crosshair: a vertical line
+      // the full height of the map and a horizontal line the full width,
+      // crossing exactly at the selected city's dot. The lines are
+      // PERSISTENT — they stay until another city is clicked (map or
+      // list), which moves them, or the Reset button removes them.
+      //  - Clicking a city circle on the MAP also opens the detail
+      //    pop-up for exactly 3 seconds, with that city's centre dot
+      //    bright yellow; when the pop-up closes the dot restores, but
+      //    the crosshair lines stay.
+      //  - Clicking a row in the city LIST draws the crosshair only:
+      //    no pop-up, and a list click closes any open pop-up and
+      //    restores its dot.
+      //  - The Reset button returns the whole page to its initial
+      //    state (see resetAll below), which includes removing the
+      //    crosshair lines.
+      var tipTimer = null;
+      var highlighted = null;   // city whose centre dot is currently bright
+      var HIGHLIGHT_FILL = "#FFD400";
+      function setHighlight(c) {
+        if (highlighted && highlighted !== c) {
+          highlighted.dot.setAttribute("fill", highlighted.dotFill);
+        }
+        highlighted = c;
+        if (c) c.dot.setAttribute("fill", HIGHLIGHT_FILL);
+      }
+      // Closes the pop-up (if open) and cancels its timer, without
+      // touching the highlight.
+      function closeTip() {
+        tooltip.classList.remove("show");
+        if (tipTimer) { clearTimeout(tipTimer); tipTimer = null; }
+      }
+      function hideCrosshair() {
+        crosshairG.style.display = "none";
+      }
+      // Draws (or moves) the persistent crosshair at city c.
+      function drawCrosshair(c) {
+        crossV.setAttribute("x1", c.x);
+        crossV.setAttribute("x2", c.x);
+        crossH.setAttribute("y1", c.y);
+        crossH.setAttribute("y2", c.y);
+        crosshairG.style.display = "";
+      }
+      // List selection: crosshair lines only, never a pop-up.
+      function showCrosshair(c) {
+        closeTip();
+        setHighlight(null);
+        drawCrosshair(c);
+      }
+      function restartTipTimer() {
+        if (tipTimer) clearTimeout(tipTimer);
+        tipTimer = setTimeout(hideTip, 3000);
+      }
+      function showTip(c, e) {
+        selectRow(null);   // a map pick supersedes any list selection
+        setHighlight(c);
+        drawCrosshair(c);
+        tooltip.innerHTML = "";
+        var n = document.createElement("div");
+        n.className = "t-name"; n.textContent = c.name;
+        var co = document.createElement("div");
+        co.className = "t-sub"; co.textContent = c.country || "";
+        var s = document.createElement("div");
+        s.className = "t-sub";
+        // Population is shown only while the Population mode is on,
+        // exactly as elevation is shown only while Elevation is on.
+        var parts = [];
+        if (popOn) parts.push(c.pop.toFixed(1) + "M");
+        parts.push(fmtLat(c.lat) + ", " + c.tz);
+        if (elevOn) parts.push(fmtElev(c.elev));
+        s.textContent = parts.join(" · ");
+        tooltip.appendChild(n); if (c.country) tooltip.appendChild(co); tooltip.appendChild(s);
+        var ltEl = document.createElement("div");
+        ltEl.className = "t-sub";
+        var localTime = fmtLocalTime(c);
+        ltEl.textContent = localTime ? ("Local time " + localTime) : "";
+        if (localTime) tooltip.appendChild(ltEl);
+        tooltip.classList.add("show");
+        restartTipTimer();
+        if (e) moveTip(e); else positionTipAtCity(c);
+      }
+      function positionTipAtCity(c) {
+        var rect = wrap.getBoundingClientRect();
+        var px = (c.x / W) * rect.width + 14;
+        var py = (c.y / H) * rect.height + 14;
+        var tw = tooltip.offsetWidth, th = tooltip.offsetHeight;
+        if (px + tw > rect.width - 6) px = px - tw - 28;
+        if (py + th > rect.height - 6) py = py - th - 28;
+        if (px < 6) px = 6;
+        if (py < 6) py = 6;
+        tooltip.style.left = px + "px";
+        tooltip.style.top = py + "px";
+      }
+      function moveTip(e) {
+        var rect = wrap.getBoundingClientRect();
+        var px = (e.clientX - rect.left) + 14;
+        var py = (e.clientY - rect.top) + 14;
+        var tw = tooltip.offsetWidth, th = tooltip.offsetHeight;
+        if (px + tw > rect.width - 6) px = px - tw - 24;
+        if (py + th > rect.height - 6) py = py - th - 24;
+        tooltip.style.left = px + "px";
+        tooltip.style.top = py + "px";
+      }
+      function hideTip() {
+        closeTip();
+        setHighlight(null);
+      }
+
+      // ---- Map clicks (one handler for both modes) ----
+      // A city qualifies if the pointer is within its reach: its
+      // population circle's current radius in population mode, or an
+      // 18-unit tap radius around its centre dot. Among the qualifying
+      // cities the NEAREST centre wins. Per-city hit areas or
+      // topmost-circle rules would mis-select in dense clusters —
+      // New York and Boston are ~11 units apart, Seattle sits inside
+      // Vancouver's circle — and a neighbour could capture a click
+      // aimed at a city's own dot; nearest-centre selection guarantees
+      // every dot (distance 0 from itself) selects its own city.
+      function eventToMap(e) {
+        var rect = svg.getBoundingClientRect();
+        return { x: (e.clientX - rect.left) / rect.width * W,
+                 y: (e.clientY - rect.top) / rect.height * H };
+      }
+      function cityAt(mx, my) {
+        // Squared distances: this runs on every mousemove, and
+        // comparing d² against reach² picks the same city without
+        // 40 square roots per event.
+        var best = null, bestD2 = Infinity;
+        for (var i = 0; i < CITIES.length; i++) {
+          var c = CITIES[i];
+          var dx = mx - c.x, dy = my - c.y;
+          var d2 = dx * dx + dy * dy;
+          var reach = Math.max(18, c.r * popScale);
+          if (d2 <= reach * reach && d2 < bestD2) { bestD2 = d2; best = c; }
+        }
+        return best;
+      }
+      svg.addEventListener("click", function (e) {
+        var p = eventToMap(e);
+        var c = cityAt(p.x, p.y);
+        if (c) showTip(c, e);
+      });
+      svg.addEventListener("mousemove", function (e) {
+        var p = eventToMap(e);
+        svg.style.cursor = cityAt(p.x, p.y) ? "pointer" : "";
+      });
+
+      // ---- Shared growth-animation engine ----
+      // Both growth effects (population circles, elevation lines) run
+      // as Web Animations API transforms, which the browser's
+      // compositor drives. The previous version set SVG geometry
+      // attributes (r, y2) frame-by-frame from requestAnimationFrame;
+      // in the phone's web view those per-frame attribute updates
+      // were not repainted smoothly, so the circles and lines snapped
+      // straight to full size even though the same code animated
+      // smoothly on desktop. Compositor transform animations keep
+      // running at full frame rate regardless of main-thread load or
+      // rAF throttling. Each circle scales about its own centre and
+      // each elevation line scales vertically from its dot
+      // (transform-box: fill-box — see the .grow-c / .grow-l CSS).
+      // A 40 ms interval mirrors the eased progress into popScale /
+      // elevScale for the leader lines and click targets, and the
+      // finish path commits the exact end state. Toggling
+      // mid-animation reverses from the current value, so rapid
+      // clicks can't break the state. Turning a channel OFF is not
+      // animated at all: channelSnap() cancels any running animation
+      // and pins the end state in the same frame, so the circles or
+      // lines vanish instantly. With reduced motion the growth
+      // is a shorter, gentler 0.4 s rather than an instant jump,
+      // since the visible growth is the feature being toggled.
+      var reduceMotion = window.matchMedia &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      var GROW_MS = 1000;
+      var growChannels = [];
+      var syncTimer = null;
+      function easeInOut(t) {
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      }
+      function makeGrowChannel(apply, targets) {
+        var ch = { value: 0, from: 0, to: 0, start: 0, dur: 0,
+          running: false, anims: [], apply: apply, targets: targets };
+        growChannels.push(ch);
+        return ch;
+      }
+      function channelProgress(ch, now) {
+        if (!ch.running || ch.dur <= 0) return 1;
+        var p = (now - ch.start) / ch.dur;
+        return p >= 1 ? 1 : p;
+      }
+      function channelValueAt(ch, now) {
+        var p = channelProgress(ch, now);
+        return p >= 1 ? ch.to :
+          ch.from + (ch.to - ch.from) * easeInOut(p);
+      }
+      function finishChannel(ch) {
+        ch.running = false;
+        ch.value = ch.to;
+        var hadAnims = ch.anims.length > 0;
+        for (var i = 0; i < ch.anims.length; i++) {
+          try { ch.anims[i].commitStyles(); } catch (e) {}
+          ch.anims[i].cancel();
+        }
+        ch.anims = [];
+        if (!hadAnims) setTargets(ch, ch.to, 0);   // transition fallback: pin the end state
+        ch.apply();
+      }
+      // Sets every target element's transform, optionally with a CSS
+      // transition of the given duration (the no-WAAPI fallback path;
+      // also used to pin a channel instantly to its end state).
+      function setTargets(ch, target, durMs) {
+        for (var i = 0; i < ch.targets.length; i++) {
+          var t = ch.targets[i];
+          var f = t.kind === "scaleY" ? "scaleY(" : "scale(";
+          t.el.style.transition = durMs > 0 ?
+            "transform " + durMs + "ms cubic-bezier(0.645, 0.045, 0.355, 1)" :
+            "none";
+          t.el.style.transform = f + target + ")";
+        }
+      }
+      function syncTick() {
+        var now = performance.now();
+        var anyRunning = false;
+        for (var i = 0; i < growChannels.length; i++) {
+          var ch = growChannels[i];
+          if (!ch.running) continue;
+          ch.value = channelValueAt(ch, now);
+          ch.apply();
+          if (channelProgress(ch, now) >= 1) finishChannel(ch);
+          else anyRunning = true;
+        }
+        if (!anyRunning && syncTimer !== null) {
+          clearInterval(syncTimer);
+          syncTimer = null;
+        }
+      }
+      // Pins a channel to its target instantly: cancels any running
+      // animation (WAAPI or CSS-transition fallback), sets every
+      // target's transform to the end state with no transition, and
+      // applies the mirrored value. Used for every OFF switch —
+      // shrinking is never animated.
+      function channelSnap(ch, target) {
+        for (var i = 0; i < ch.anims.length; i++) ch.anims[i].cancel();
+        ch.anims = [];
+        ch.running = false;
+        ch.from = target;
+        ch.to = target;
+        ch.value = target;
+        setTargets(ch, target, 0);
+        ch.apply();
+      }
+      function channelTo(ch, target) {
+        var now = performance.now();
+        if (ch.running) ch.value = channelValueAt(ch, now);
+        for (var i = 0; i < ch.anims.length; i++) ch.anims[i].cancel();
+        ch.anims = [];
+        ch.from = ch.value;
+        ch.to = target;
+        var dist = Math.abs(target - ch.from);
+        ch.dur = (reduceMotion ? 400 : GROW_MS) * dist;
+        if (dist === 0 || ch.dur === 0) {
+          ch.running = false;
+          ch.value = target;
+          setTargets(ch, target, 0);
+          ch.apply();
+          return;
+        }
+        ch.start = now;
+        ch.running = true;
+        if (HAS_WAAPI) {
+          for (var i = 0; i < ch.targets.length; i++) {
+            var t = ch.targets[i];
+            var f = t.kind === "scaleY" ? "scaleY(" : "scale(";
+            t.el.style.transform = f + ch.from + ")";
+            ch.anims.push(t.el.animate(
+              [{ transform: f + ch.from + ")" },
+               { transform: f + target + ")" }],
+              { duration: ch.dur,
+                easing: "cubic-bezier(0.645, 0.045, 0.355, 1)",
+                fill: "forwards" }));
+          }
+        } else {
+          // Fallback for browsers that fail the WAAPI feature test:
+          // CSS transitions on the same transforms — still
+          // compositor-driven, so the growth stays smooth; the sync
+          // interval mirrors progress and finishes the channel.
+          setTargets(ch, target, ch.dur);
+        }
+        ch.apply();
+        if (syncTimer === null) syncTimer = setInterval(syncTick, 40);
+      }
+
+      // ---- Population toggle ----
+      // Default view is dots only (labels start off). Clicking Population grows
+      // every city's circle from its centre dot out to full size (area
+      // ∝ population) over ~1s with a smooth ease-in-out, all cities
+      // together, and shows the scale legend; clicking again removes
+      // the circles INSTANTLY (no shrink animation) and hides the
+      // legend. popScale is the single source of truth: 0 = dots only,
+      // 1 = full circles; renderPop() applies it to the leader-line
+      // start points and the two groups' visibility (the circles
+      // themselves are sized by their transform animations).
+      // Independent of the Labels toggle, the crosshair, and the
+      // pop-up.
+      var popOn = false;
+      var popScale = 0;
+      var popBtn = document.getElementById("popToggle");
+      var popTargets = [];
+      CITIES.forEach(function (c) {
+        popTargets.push({ el: c.circ, kind: "scale" });
+      });
+      var lastLeaderScale = -1;   // popScale the leader starts were last written for
+      function renderPop() {
+        var show = popScale > 0 || popOn;
+        circlesG.style.display = show ? "" : "none";
+        layoutLegends();
+        // The leader start points depend only on popScale — skip
+        // the 44-city rewrite when it hasn't moved since last time.
+        if (popScale === lastLeaderScale) return;
+        lastLeaderScale = popScale;
+        CITIES.forEach(function (c) {
+          var rr = c.r * popScale;
+          if (c.leaderEl) {
+            var er = Math.max(rr, DOT_R);
+            c.leaderEl.setAttribute("x1", c.x + c.leaderDX / c.leaderDist * er);
+            c.leaderEl.setAttribute("y1", c.y + c.leaderDY / c.leaderDist * er);
+          }
+        });
+      }
+      var popCh = makeGrowChannel(function () {
+        popScale = popCh.value; renderPop();
+      }, popTargets);
+      function setPop(on) {
+        popOn = on;
+        popBtn.classList.toggle("mode-on", on);
+        popBtn.setAttribute("aria-pressed", on ? "true" : "false");
+        if (on) {
+          // Make the groups visible BEFORE the animations are
+          // created, in the same task as the click: an animation
+          // created on a display:none subtree can have its start
+          // deferred until after the next style/layout pass, which
+          // showed up as a laggy start. Then grow.
+          renderPop();
+          channelTo(popCh, 1);
+        } else {
+          channelSnap(popCh, 0);   // off is instant — no shrink
+        }
+      }
+      popBtn.addEventListener("click", function () { setPop(!popOn); });
+
+      // ---- Elevation toggle ----
+      // Grows a thin vertical line upward from each city's dot, length
+      // ∝ the city's elevation (see c.elevLen), in the city's own
+      // bright dot colour — the cities themselves are never
+      // recoloured. Uses the same ~1s engine as Population, in both
+      // dots-only and population modes; switching it off removes the
+      // lines instantly. While it is on, the city pop-up also shows
+      // the elevation (see showTip).
+      var elevOn = false;
+      var elevScale = 0;
+      var elevBtn = document.getElementById("elevToggle");
+      var elevTargets = [];
+      CITIES.forEach(function (c) {
+        elevTargets.push({ el: c.elevLine, kind: "scaleY" });
+      });
+      function renderElev() {
+        elevG.style.display = (elevScale > 0 || elevOn) ? "" : "none";
+        layoutLegends();
+      }
+      var elevCh = makeGrowChannel(function () {
+        elevScale = elevCh.value; renderElev();
+      }, elevTargets);
+      function setElev(on) {
+        elevOn = on;
+        elevBtn.classList.toggle("mode-on", on);
+        elevBtn.setAttribute("aria-pressed", on ? "true" : "false");
+        if (on) {
+          renderElev();   // visible first, same start fix as Population
+          channelTo(elevCh, 1);
+        } else {
+          channelSnap(elevCh, 0);   // off is instant — no shrink
+        }
+      }
+      elevBtn.addEventListener("click", function () { setElev(!elevOn); });
+
+      // ---- Day/Night toggle ----
+      // Shades the night side of the Earth as of the moment the
+      // button is switched on (recomputed on every switch-on). The
+      // terminator is latitude-dependent: with the Sun's declination
+      // δ for the current date, the sunrise/sunset hour angle H at
+      // latitude φ satisfies cos H = −tan φ · tan δ, and the night
+      // spans the longitudes centred on the anti-solar longitude
+      // (the subsolar longitude −15° × (UTC hours − 12), plus 180°)
+      // with half-width 180° − H. Where cos H ≤ −1 that latitude is
+      // in 24-hour daylight (no night at all); where cos H ≥ 1 it is
+      // in 24-hour darkness (full-width night) — so midnight sun and
+      // polar night come out of the same formula, and the terminator
+      // curves with latitude instead of running straight.
+      var dnOn = false;
+      var dnBtn = document.getElementById("dnToggle");
+      function renderNight() {
+        while (nightG.firstChild) nightG.removeChild(nightG.firstChild);
+        var now = new Date();
+        var utcH = now.getUTCHours() + now.getUTCMinutes() / 60 +
+          now.getUTCSeconds() / 3600;
+        // Anti-solar longitude, normalised into (-180, 180].
+        var anti = -15 * (utcH - 12) + 180;
+        anti = ((anti + 180) % 360 + 360) % 360 - 180;
+        if (anti === -180) anti = 180;
+        // Solar declination for the current date: standard
+        // approximation from the day of year (UTC).
+        var y0 = Date.UTC(now.getUTCFullYear(), 0, 1);
+        var doy = Math.floor((now.getTime() - y0) / 86400000) + 1;
+        var decl = -23.44 * Math.cos(360 / 365 * (doy + 10) * Math.PI / 180);
+        var tanD = Math.tan(decl * Math.PI / 180);
+        // Night half-width, in degrees of longitude, at latitude phi.
+        function nightHalf(phi) {
+          if (phi === 90) return decl < 0 ? 180 : 0;
+          if (phi === -90) return decl > 0 ? 180 : 0;
+          var cosH = -Math.tan(phi * Math.PI / 180) * tanD;
+          if (cosH <= -1) return 0;     // 24-hour daylight
+          if (cosH >= 1) return 180;    // 24-hour darkness
+          return 180 - Math.acos(cosH) * 180 / Math.PI;
+        }
+        // Sample the terminator every 2° of latitude: down the east
+        // edge from the north pole, back up the west edge, closed
+        // across the poles. Longitudes stay unwrapped, so x can run
+        // past the map's edges; two extra copies of the path, shifted
+        // one map width each way, tile the part of the night that
+        // wraps across the ±180° edge onto the opposite side.
+        var d = "", phi, hw;
+        for (phi = 90; phi >= -90; phi -= 2) {
+          hw = nightHalf(phi);
+          d += (d ? "L" : "M") + X(anti + hw).toFixed(1) + " " +
+            Y(phi).toFixed(1);
+        }
+        for (phi = -90; phi <= 90; phi += 2) {
+          hw = nightHalf(phi);
+          d += "L" + X(anti - hw).toFixed(1) + " " + Y(phi).toFixed(1);
+        }
+        d += "Z";
+        [-W, 0, W].forEach(function (shift) {
+          var p = el("path", { d: d, fill: "#0a1727",
+            "fill-opacity": 0.42, style: "pointer-events:none" }, nightG);
+          if (shift) p.setAttribute("transform", "translate(" + shift + " 0)");
+        });
+        nightG.style.display = "";
+      }
+      function setDayNight(on) {
+        dnOn = on;
+        dnBtn.setAttribute("aria-pressed", on ? "true" : "false");
+        if (on) renderNight();   // recomputed on every switch-on
+        else nightG.style.display = "none";
+      }
+      dnBtn.addEventListener("click", function () { setDayNight(!dnOn); });
+      // Day/Night is ON by default: shade the current night side as
+      // soon as the page loads; the button then toggles it off/on.
+      setDayNight(true);
+
+      // ---- Axis toggle: Longitude / Time Zone ----
+      // Switches only the vertical gridlines, the bottom axis labels
+      // and heading, and (in Time Zone mode) the alternating zone
+      // bands plus the current-local-time clocks along the top edge
+      // (see axisTzTopG above). Longitude is the default: lines
+      // every 30° labelled in degrees. Time Zone: each zone is a
+      // 15° band centred on its UTC meridian (offset k spans
+      // 15k ± 7.5°) — lines at the band edges, labels every two
+      // zones in their bands' middles, plus the checkered bands on
+      // the same centred geometry. City
+      // positions are plotted by exact longitude in both modes and
+      // never move; latitude grid/axis are untouched.
+      var tzMode = false;
+      var axisBtn = document.getElementById("axisToggle");
+      function setAxisMode(tz) {
+        tzMode = tz;
+        axisBtn.setAttribute("aria-pressed", tz ? "true" : "false");
+        // Button text is fixed ("Long/TZ") and never changes; the
+        // mode shows in aria-pressed, the axis heading and the grid.
+        gridLon.style.display = tz ? "none" : "";
+        axisLonG.style.display = tz ? "none" : "";
+        gridTz.style.display = tz ? "" : "none";
+        axisTzG.style.display = tz ? "" : "none";
+        axisTzTopG.style.display = tz ? "" : "none";
+        midnightG.style.display = tz ? "" : "none";
+        homeTzG.style.display = tz ? "" : "none";
+        if (tz) { updateHomeTzBand(); updateTzTimes(); }   // clocks + midnight line + home band current the moment they appear
+        tzBands.style.display = tz ? "" : "none";
+        axisHead.textContent = tz ? "Time zone" : "Longitude";
+      }
+      axisBtn.addEventListener("click", function () { setAxisMode(!tzMode); });
+      setAxisMode(false);
+
+      // ---- Labels toggle ----
+      // Labels start OFF: dots only — no names, leader lines, or
+      // tropic/polar annotations (they live in labelsG).
+      var labelsOn = false;
+      var labelsBtn = document.getElementById("labelsToggle");
+      function setLabels(on) {
+        labelsOn = on;
+        labelsG.style.display = on ? "" : "none";
+        leaders.style.display = on ? "" : "none";
+        // State shows as a tinted button background; the text is
+        // fixed ("Labels") and never changes.
+        labelsBtn.classList.toggle("mode-on", on);
+        labelsBtn.setAttribute("aria-pressed", on ? "true" : "false");
+      }
+      labelsBtn.addEventListener("click", function () { setLabels(!labelsOn); });
+      setLabels(false);   // initial state: labels off
+
+      // ---- Reset button: back to the initial state, instantly ----
+      // Everything the page opened with, restored in one click:
+      // crosshair removed; Population OFF (circles gone, size legend
+      // hidden); Elevation OFF (lines gone); Day/Night ON (shading
+      // shown, recomputed now); axis in Longitude mode; Labels OFF;
+      // any open pop-up closed and its bright dot restored; every
+      // button back to its initial aria-pressed state. The mode
+      // switches reuse the toggles' own setters, whose OFF paths are
+      // instant (channelSnap), so the reset never animates.
+      document.getElementById("resetBtn").addEventListener("click", function () {
+        hideTip();          // closes the pop-up, restores the bright dot
+        hideCrosshair();
+        selectRow(null);    // clears the list selection highlight
+        setPop(false);
+        setElev(false);
+        setDayNight(true);
+        setAxisMode(false);
+        setLabels(false);
+        resetSort();        // list back to the default latitude order
+      });
+
+      // ---- City list (rows clickable: crosshair only, no pop-up) ----
+      // The rows live in the .table-scroll box (see the CSS): ten
+      // rows visible, the rest reached by scrolling inside the box.
+      // A row tap NEVER scrolls the page and never moves the box's
+      // own scroll position — it only moves the persistent row
+      // highlight and the map crosshair, so the user can keep
+      // scrolling the box and tap another city right away.
+      // Sortable via the column headers; the DEFAULT order is by
+      // latitude descending (northernmost first), matching the map's
+      // top-to-bottom direction. The map itself keeps CITIES order.
+      // Sorting only re-orders the existing row elements inside the
+      // box (appendChild moves them), so the rows' click/keyboard
+      // selection behaviour is untouched and neither the map, the
+      // crosshair/selection, nor the page position is affected.
+      // Header/rows alignment needs no maintenance here: the
+      // header bar (.list-head) sits statically ABOVE the box —
+      // outside the scrolling content entirely, with no sticky,
+      // no scroll listener and no transform pinning — and it and
+      // every row are grids on the one shared --cols template
+      // (see the CSS at .list-wrap), so header cells and row
+      // cells share their column boundaries exactly, on every
+      // platform, in every sort state.
+      var tableScroll = document.getElementById("tableScroll");
+      var rowsBox = document.getElementById("cityRows");
+      var rowEls = [];
+      // The selected row's persistent highlight: it stays on the
+      // city even when scrolled out of view inside the box, until
+      // another city is picked (list or map) or Reset clears it.
+      var selectedTr = null;
+      function selectRow(tr) {
+        if (selectedTr) selectedTr.classList.remove("selected");
+        selectedTr = tr;
+        if (tr) tr.classList.add("selected");
+      }
+      CITIES.forEach(function (c) {
+        var tr = document.createElement("div");
+        tr.className = "city-row";
+        tr.setAttribute("tabindex", "0");
+        tr.setAttribute("role", "button");
+        tr.setAttribute("aria-label", c.name);
+        tr.addEventListener("click", function () {
+          selectRow(tr);
+          showCrosshair(c);
+        });
+        tr.addEventListener("keydown", function (ev) {
+          if (ev.key === "Enter" || ev.key === " ") {
+            ev.preventDefault();
+            selectRow(tr);
+            showCrosshair(c);
+          }
+        });
+        var tdName = document.createElement("div");
+        tdName.className = "row-cell city";
+        var dot = document.createElement("span");
+        dot.className = "dot";
+        dot.style.background = REGION_COLORS[c.region];
+        tdName.appendChild(dot);
+        tdName.appendChild(document.createTextNode(c.name));
+        var tdLat = document.createElement("div");
+        tdLat.className = "row-cell num"; tdLat.textContent = fmtLat(c.lat);
+        var tdLon = document.createElement("div");
+        tdLon.className = "row-cell num"; tdLon.textContent = c.tz;
+        var tdPop = document.createElement("div");
+        tdPop.className = "row-cell num"; tdPop.textContent = c.pop.toFixed(1) + "M";
+        tr.appendChild(tdName); tr.appendChild(tdLat);
+        tr.appendChild(tdLon); tr.appendChild(tdPop);
+        rowEls.push({ city: c, tr: tr });
+      });
+
+      // ---- List sorting ----
+      // sortState.dir multiplies a natural-ascending comparator:
+      // +1 = ascending, −1 = descending. Default: latitude with
+      // dir −1 (north-to-south), the list's long-standing order.
+      // First click on a header uses that column's natural first
+      // direction (City A–Z, Latitude north-to-south, Time zone
+      // west-to-east by UTC offset, Population largest-first);
+      // clicking the same header again reverses it. Time-zone ties
+      // break by longitude.
+      function tzOffsetMin(tz) {
+        var m = tz.replace("UTC", "").replace("−", "-").split(":");
+        var sign = m[0].indexOf("-") === 0 ? -1 : 1;
+        var hh = Math.abs(parseInt(m[0], 10)) || 0;
+        var mm = m.length > 1 ? parseInt(m[1], 10) || 0 : 0;
+        return sign * (hh * 60 + mm);
+      }
+      CITIES.forEach(function (c) { c.tzMin = tzOffsetMin(c.tz); });
+      var SORT_CMP = {
+        city: function (a, b) { return a.name.localeCompare(b.name); },
+        latitude: function (a, b) { return a.lat - b.lat; },
+        timezone: function (a, b) {
+          return (a.tzMin - b.tzMin) || (a.lon - b.lon);
+        },
+        population: function (a, b) { return a.pop - b.pop; }
+      };
+      var SORT_FIRST_DIR = { city: 1, latitude: -1, timezone: 1, population: -1 };
+      var sortState = { key: "latitude", dir: -1 };
+      var sortBtns = document.querySelectorAll(".list-head .sort-btn");
+      function applySort() {
+        var cmp = SORT_CMP[sortState.key], dir = sortState.dir;
+        var sorted = rowEls.slice().sort(function (ra, rb) {
+          return cmp(ra.city, rb.city) * dir;
+        });
+        sorted.forEach(function (r) { rowsBox.appendChild(r.tr); });
+        // A new order is browsed from its start: back to the top
+        // of the box (this is also what returns the box to the top
+        // on Reset, via resetSort below). The header bar is static
+        // above the box, so there is nothing to re-sync.
+        tableScroll.scrollTop = 0;
+        sortBtns.forEach(function (btn) {
+          var th = btn.parentNode;
+          var ind = btn.querySelector(".sort-ind");
+          // The indicator is positioned out of flow (see the
+          // .sort-ind CSS): sorting only swaps its glyph and its
+          // opacity class, so no header label or column boundary
+          // can shift when the sort state changes.
+          if (btn.getAttribute("data-sort") === sortState.key) {
+            th.setAttribute("aria-sort", dir === 1 ? "ascending" : "descending");
+            ind.textContent = dir === 1 ? "▲" : "▼";
+            ind.classList.add("on");
+          } else {
+            th.setAttribute("aria-sort", "none");
+            ind.textContent = "▲";
+            ind.classList.remove("on");
+          }
+        });
+      }
+      function resetSort() {
+        sortState = { key: "latitude", dir: -1 };
+        applySort();
+      }
+      sortBtns.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var key = btn.getAttribute("data-sort");
+          if (sortState.key === key) sortState.dir = -sortState.dir;
+          else sortState = { key: key, dir: SORT_FIRST_DIR[key] };
+          applySort();
+        });
+      });
+      layoutLegends();   // initial legend state (no panels — Pop and Elev both off)
+      applySort();
+    </script>
+  </body>
+</html>
