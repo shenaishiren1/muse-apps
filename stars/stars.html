@@ -1,0 +1,2632 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>Star Map</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #edf0f5;
+        --panel: #ffffff;
+        --panel-2: #f4f6fa;
+        --ink: #17203a;
+        --ink-soft: #4c5872;
+        --line: #d5dbea;
+        --accent: #b97f16;
+        --accent-ink: #7a5205;
+        /* Timeline track: black, so the coloured event strips pop
+           against it, framed by a very thin OFF-WHITE rim
+           (--track-rim, applied as a 1px outline on .slider-track).
+           The slider thumb's ring is this exact same off-white
+           (see the thumb rules below), so rim and thumb match.
+           Black bar and off-white rim/thumb in both schemes. */
+        --track: #000000;
+        --track-rim: #f5f1e6;
+        --chip: #e7ecf5;
+        --sky-edge: #2a3a63;
+        --focus: #1c64d8;
+        /* Per-event colours: each jump event's timeline strip and its
+           jump button share one colour, so the two match at a glance. */
+        --c-sunrise: #e8930c;
+        --c-sunset: #d6541e;
+        --c-moonrise: #f5c400;
+        --c-moonset: #2b62d9;
+        --c-dark: #7c3aed;
+        --c-midnight: #4f46c8;
+        --c-now: #1d9e57;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #060a16;
+          --panel: #0c1327;
+          --panel-2: #101a33;
+          --ink: #e8edf9;
+          --ink-soft: #a3b0cc;
+          --line: #243154;
+          --accent: #f0b64a;
+          --accent-ink: #f0b64a;
+          --track: #000000;
+          --track-rim: #f5f1e6;
+          --chip: #182444;
+          --sky-edge: #3b4f83;
+          --focus: #7fb0ff;
+          --c-sunrise: #ffb02e;
+          --c-sunset: #f0762e;
+          --c-moonrise: #ffd94d;
+          --c-moonset: #6ea8ff;
+          --c-dark: #a678f5;
+          --c-midnight: #8b93f8;
+          --c-now: #3ecf74;
+        }
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        line-height: 1.45;
+        -webkit-font-smoothing: antialiased;
+      }
+      body.redlight .redzone {
+        filter: brightness(.82) sepia(1) saturate(5) hue-rotate(-42deg);
+      }
+      .wrap {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 18px 16px 40px;
+      }
+      header.intro { margin: 2px 0 14px; }
+      header.intro h1 {
+        font-family: Iowan Old Style, Palatino, "Palatino Linotype", Georgia, serif;
+        font-size: 1.65rem;
+        font-weight: 600;
+        margin: 0 0 4px;
+        letter-spacing: .01em;
+      }
+      header.intro p { margin: 0; color: var(--ink-soft); font-size: .98rem; max-width: 62ch; }
+      header.intro p strong { color: var(--ink); font-weight: 600; }
+
+      .strip-row {
+        display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        margin: 0 0 16px;
+      }
+      .top-left {
+        display: flex; align-items: center; gap: 8px;
+        flex: 1 1 0; min-width: 0; flex-wrap: nowrap;
+      }
+      .top-right {
+        display: flex; align-items: center; gap: 6px;
+        flex: 1 1 0; min-width: 0; flex-wrap: nowrap; justify-content: flex-end;
+      }
+      .btn.expl-btn { padding: 7px 10px; font-size: .88rem; white-space: nowrap; }
+      .tonight-strip {
+        display: flex; flex-wrap: wrap; gap: 8px;
+        flex: 1 1 100%; margin: 0;
+      }
+      body:not(.show-expl) .expl { display: none; }
+      .stat {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 8px 12px;
+        font-size: .9rem;
+      }
+      .stat .k { color: var(--ink-soft); font-size: .74rem; text-transform: uppercase; letter-spacing: .07em; display: block; }
+      .stat .v { font-weight: 650; }
+      .moon-phase-icon {
+        width: 46px; height: 46px; flex: 0 0 auto; align-self: center;
+        display: block;
+      }
+      /* Full moon: a soft yellow halo around the top Moon icon,
+         present only while the displayed moment's illumination
+         reads 100% (toggled from updatePhaseIcon). */
+      .moon-phase-icon.full-glow {
+        filter: drop-shadow(0 0 5px rgba(255, 205, 60, .95)) drop-shadow(0 0 13px rgba(255, 185, 40, .6));
+      }
+      /* The Moon's marker on the sky dome does NOT use a drop-shadow
+         halo at full moon — that filter doesn't render on the owner's
+         iPhone. Instead drawSky paints the dome Moon yellow/gold
+         itself at full moon (see the moon branch there); only this
+         top icon gets the glow. */
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr);
+        gap: 18px;
+        align-items: start;
+      }
+      @media (max-width: 860px) {
+        .layout { grid-template-columns: minmax(0, 1fr); }
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 14px;
+      }
+      .chart-card { padding: 10px; }
+      .chart-holder { position: relative; width: 100%; }
+      svg#sky { display: block; width: 100%; height: auto; }
+
+      .controls { margin-top: 12px; padding: 4px 4px 2px; }
+      .time-row {
+        display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      }
+      .time-readout {
+        font-variant-numeric: tabular-nums;
+        font-weight: 650; font-size: clamp(.76rem, 3.8vw, 1.02rem);
+        flex: 1 1 100%; min-width: 0; white-space: nowrap; line-height: 1.3;
+      }
+      #clockReadout { white-space: nowrap; display: inline-block; max-width: 100%; vertical-align: top; }
+      input[type="range"] { flex: 1 1 200px; accent-color: var(--accent); height: 28px; }
+      input[type="date"] {
+        font: inherit; font-size: .92rem;
+        background: var(--panel-2); color: var(--ink);
+        border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px;
+      }
+      .date-wrap { position: relative; display: inline-flex; flex: 0 0 auto; }
+      .date-display {
+        font-size: .92rem; font-weight: 600; white-space: nowrap;
+        background: var(--panel-2); color: var(--ink);
+        border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px;
+      }
+      .date-wrap input[type="date"] {
+        position: absolute; inset: 0; width: 100%; height: 100%;
+        opacity: .02; cursor: pointer; padding: 0; border: none; background: none;
+      }
+      @media (max-width: 560px) {
+        .strip-row { gap: 6px; }
+        .moon-phase-icon { width: 40px; height: 40px; }
+        .date-display { font-size: .82rem; padding: 5px 7px; }
+        .date-cluster { gap: 4px; }
+        .date-cluster .btn.narrow { padding: 6px 7px; }
+        .btn.expl-btn { padding: 6px 9px; font-size: .85rem; }
+      }
+      .btn {
+        font: inherit; font-size: .9rem; font-weight: 600;
+        background: var(--chip); color: var(--ink);
+        border: 1px solid var(--line); border-radius: 999px;
+        padding: 7px 14px; cursor: pointer;
+      }
+      .btn:hover { border-color: var(--accent); }
+      .btn.narrow { padding: 7px 10px; }
+      .date-cluster { display: inline-flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+      .slider-group { display: flex; align-items: center; gap: 8px; flex: 1 1 240px; min-width: 0; }
+      .slider-group input[type="range"] { flex: 1 1 auto; min-width: 60px; }
+      .slider-wrap { position: relative; flex: 1 1 auto; min-width: 60px; display: flex; align-items: center; }
+      /* The slider's own track line is drawn as a separate layer
+         (.slider-track, z-index 0) UNDER the marker strips
+         (.slider-marks, z-index 1), and the range input itself is
+         transparent-tracked with only its thumb painted (z-index 2).
+         So the stacking is: track line < strips < thumb — the strips
+         sit in front of the line instead of being swallowed by it,
+         and the thumb still rides on top of everything. */
+      .slider-wrap input[type="range"] {
+        flex: 1 1 auto; width: 100%; min-width: 0; position: relative; z-index: 2;
+        height: 38px;
+        -webkit-appearance: none; appearance: none; background: transparent; accent-color: auto;
+      }
+      .slider-wrap input[type="range"]::-webkit-slider-runnable-track { height: 10px; background: transparent; }
+      .slider-wrap input[type="range"]::-moz-range-track { height: 10px; background: transparent; }
+      /* Thumb: a HOLLOW ring ~2x the old diameter to match the
+         doubled track (Build 27: it used to be a solid disc). The
+         ring is the SAME off-white as the track rim
+         (var(--track-rim)) so the two match, and the centre is
+         50% off-white — translucent — so the coloured
+         strips underneath still show through faintly instead of being hidden
+         behind one big solid dot. The thin dark outer edge keeps
+         the pale ring readable against the page. (Firefox sizes
+         the thumb's content box, so its width is 32 minus the
+         two 3px borders.) */
+      .slider-wrap input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none; appearance: none;
+        width: 32px; height: 32px; border-radius: 50%;
+        background: rgba(245, 241, 230, .5);
+        border: 3px solid var(--track-rim);
+        box-shadow: 0 0 0 1px #0a1122;
+        margin-top: -11px; cursor: pointer;
+      }
+      .slider-wrap input[type="range"]::-moz-range-thumb {
+        width: 26px; height: 26px; border-radius: 50%;
+        background: rgba(245, 241, 230, .5);
+        border: 3px solid var(--track-rim);
+        box-shadow: 0 0 0 1px #0a1122; cursor: pointer;
+      }
+      /* The black bar spans EXACTLY the thumb's travel: inset by
+         half the thumb width (16px) at each end, so the bar's left
+         edge is minute 0 (12:00 AM) and its right edge is minute
+         1439 (11:59 PM) — no extension beyond the travel on either
+         side. The event strips are positioned on this same span
+         (see renderMarks). The off-white rim is a 1px outline. */
+      .slider-track {
+        position: absolute; left: 16px; right: 16px; top: 50%; height: 10px;
+        transform: translateY(-50%); border-radius: 5px;
+        background: var(--track); outline: 1px solid var(--track-rim);
+        pointer-events: none; z-index: 0;
+      }
+      .slider-marks { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+      /* Jump-event markers are COLOUR STRIPS embedded in the timeline
+         itself: 3px wide and exactly as tall as the track (10px), so
+         each reads as a short vertical coloured line sitting flush
+         IN the line — no border, no frame, no disc. The odd 3px
+         width gives the strip a true centre pixel, and the strip is
+         centred (translate(-50%)) on its event's exact minute, so
+         that centre pixel is the minute's position. Each event has
+         its own colour (the --c-* tokens), and the matching jump
+         button's icon takes the same colour (see the .jump-group
+         rules below), so strip and button match at a glance. Strips
+         carry no active/highlighted state — a jump click just moves
+         the slider to the strip. */
+      .slider-mark {
+        position: absolute; top: 50%; width: 3px; height: 10px;
+        transform: translate(-50%, -50%);
+        border-radius: 1px;
+        background: var(--accent);
+      }
+      .slider-mark.ev-sunrise { background: var(--c-sunrise); }
+      .slider-mark.ev-sunset { background: var(--c-sunset); }
+      .slider-mark.ev-moonrise { background: var(--c-moonrise); }
+      .slider-mark.ev-moonset { background: var(--c-moonset); }
+      .slider-mark.ev-dark { background: var(--c-dark); }
+      .slider-mark.ev-midnight { background: var(--c-midnight); }
+      /* "Now" (shown on today's date only) is a strip exactly
+         like the event strips — 3px wide, full track height,
+         flush in the bar, no frame — in the Now green (Build 27:
+         it used to be a small hollow diamond). Like the other
+         strips it carries no highlighted state. */
+      .slider-mark.now-mark { background: var(--c-now); }
+      .jump-group { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; flex: 1 1 100%; justify-content: center; }
+      .btn.icon-btn {
+        width: 38px; height: 38px; padding: 0; border-radius: 10px;
+        display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
+      }
+      .btn.icon-btn svg { width: 21px; height: 21px; display: block; }
+      .btn.icon-btn.lang-btn {
+        width: 84px; padding: 0; overflow: hidden;
+        font-size: .8rem; font-weight: 700; letter-spacing: .01em; white-space: nowrap;
+      }
+      .lang-btn .seg {
+        flex: 1 1 0; align-self: stretch;
+        display: inline-flex; align-items: center; justify-content: center;
+        color: var(--ink-soft);
+      }
+      .lang-btn .seg.on { background: var(--accent); color: #14100a; }
+      @media (prefers-color-scheme: dark) {
+        .lang-btn .seg.on { color: #191104; }
+      }
+      .btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #14100a; }
+      @media (prefers-color-scheme: dark) {
+        .btn[aria-pressed="true"] { color: #191104; }
+      }
+      /* Jump-to buttons: each button's icon is painted in its event's
+         colour (the --evc custom property, set per button below), the
+         same colour as that event's strip on the timeline. When the
+         button is lit (aria-pressed), its background becomes that same
+         colour and the icon turns dark so the highlight stays
+         readable. The play button and the toggle-row buttons are not
+         in .jump-group and keep the plain accent treatment above. */
+      .jump-group .btn.icon-btn { color: var(--evc, var(--ink)); }
+      .jump-group .btn.icon-btn[aria-pressed="true"] {
+        background: var(--evc, var(--accent));
+        border-color: var(--evc, var(--accent));
+        color: #14100a;
+      }
+      #sunriseBtn { --evc: var(--c-sunrise); }
+      #sunsetBtn { --evc: var(--c-sunset); }
+      #moonriseBtn { --evc: var(--c-moonrise); }
+      #nowBtn { --evc: var(--c-now); }
+      #moonsetBtn { --evc: var(--c-moonset); }
+      #darkBtn { --evc: var(--c-dark); }
+      #midnightBtn { --evc: var(--c-midnight); }
+      .btn:focus-visible, input:focus-visible, .obj-row:focus-visible {
+        outline: 2px solid var(--focus); outline-offset: 2px;
+      }
+      .toggle-row { display: flex; flex-wrap: nowrap; gap: 8px; margin-top: 10px; justify-content: center; }
+      .toggle-row .btn { padding: 7px 10px; white-space: nowrap; }
+      .toggle-row .btn.icon-btn { padding: 0; }
+      .hint { font-size: .85rem; color: var(--ink-soft); margin: 10px 2px 0; }
+
+      .side h2 {
+        font-family: Iowan Old Style, Palatino, Georgia, serif;
+        font-size: 1.12rem; margin: 2px 0 8px; font-weight: 600;
+      }
+      .side .sub { font-size: .85rem; color: var(--ink-soft); margin: -4px 0 10px; }
+      .obj-list { list-style: none; margin: 0; padding: 0; }
+      .obj-row {
+        display: flex; align-items: baseline; gap: 8px; width: 100%;
+        background: none; border: none; border-bottom: 1px solid var(--line);
+        padding: 9px 4px; cursor: pointer; text-align: left; font: inherit; color: var(--ink);
+      }
+      .obj-row:last-child { border-bottom: none; }
+      .obj-row:hover { background: var(--panel-2); }
+      .obj-row.selected { background: var(--panel-2); box-shadow: inset 3px 0 0 var(--accent); }
+      .obj-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; position: relative; top: -1px; }
+      .obj-name { font-weight: 650; }
+      .obj-where { margin-left: auto; color: var(--ink-soft); font-size: .85rem; text-align: right; font-variant-numeric: tabular-nums; }
+      .obj-kind { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--accent-ink); font-weight: 700; }
+
+      .detail { margin-top: 18px; }
+      .detail h2 { margin-bottom: 2px; }
+      .detail h2 .zh { color: var(--ink-soft); font-weight: 500; font-size: .8em; margin-left: 2px; }
+      .detail .const { color: var(--ink-soft); font-size: .9rem; margin: 0 0 10px; }
+      .detail dl {
+        display: grid; grid-template-columns: auto 1fr; gap: 4px 14px;
+        margin: 0 0 10px; font-size: .93rem;
+      }
+      .detail dt { color: var(--ink-soft); }
+      .detail dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+      .detail p.fact { margin: 0; font-size: .95rem; }
+      .detail .empty { color: var(--ink-soft); font-size: .95rem; margin: 0; }
+
+      /* Wikipedia name links in the detail panel + article pop-up */
+      .wiki-link {
+        color: inherit; text-decoration: underline;
+        text-decoration-color: var(--accent); text-decoration-thickness: 1px;
+        text-underline-offset: 3px; cursor: pointer;
+      }
+      .wiki-link:hover, .wiki-link:focus-visible { color: var(--accent-ink); }
+      .wiki-overlay {
+        position: fixed; inset: 0; z-index: 60;
+        background: rgba(4, 8, 18, .62);
+        display: flex; align-items: center; justify-content: center;
+        padding: 14px;
+      }
+      .wiki-overlay[hidden] { display: none; }
+      .wiki-panel {
+        background: var(--panel); border: 1px solid var(--line);
+        border-radius: 14px; width: min(920px, 100%);
+        height: min(84dvh, 920px); display: flex; flex-direction: column;
+        overflow: hidden; box-shadow: 0 18px 50px rgba(0, 0, 0, .4);
+      }
+      .wiki-head {
+        display: flex; align-items: center; gap: 10px;
+        padding: 10px 12px; border-bottom: 1px solid var(--line);
+        background: var(--panel);
+      }
+      .wiki-title {
+        font-weight: 650; flex: 1 1 auto; min-width: 0;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .wiki-open { color: var(--accent-ink); font-size: .88rem; font-weight: 600; white-space: nowrap; }
+      .wiki-close {
+        width: 34px; height: 34px; padding: 0; border-radius: 999px;
+        flex: 0 0 auto; font-size: 1rem; line-height: 1;
+        display: inline-flex; align-items: center; justify-content: center;
+      }
+      .wiki-frame { flex: 1 1 auto; width: 100%; border: 0; background: #ffffff; }
+
+      footer.note { margin-top: 22px; color: var(--ink-soft); font-size: .85rem; max-width: 75ch; }
+      footer.note p { margin: 0 0 8px; }
+      .build-stamp { margin-top: 18px; text-align: center; color: var(--ink-soft); font-size: .8rem; font-variant-numeric: tabular-nums; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap redzone">
+      <header class="intro expl">
+        <h1>Tonight&rsquo;s sky over Los Angeles</h1>
+        <p class="expl">A planisphere for <strong>Los Angeles, CA &middot; 34.05&deg;&nbsp;N, 118.24&deg;&nbsp;W</strong>, computed for the moment you open it. Drag the time slider to preview the sky at any hour, tap any star to learn its name, and use the list to find the brightest things up right now. All clock times are Los Angeles local time.</p>
+      </header>
+
+      <div class="strip-row">
+        <div class="top-left">
+          <button class="btn expl-btn" id="explBtn" type="button" aria-pressed="false" aria-label="Show Explanation" title="Show Explanation">Explain</button>
+        </div>
+        <svg class="moon-phase-icon" id="phaseIcon" viewBox="0 0 52 52" role="img" aria-label="Current moon phase"></svg>
+        <span class="top-right date-cluster">
+          <span class="date-wrap">
+            <span class="date-display" id="dateDisplay">&mdash;</span>
+            <input type="date" id="dateInput" aria-label="Date" />
+          </span>
+          <button class="btn narrow" id="prevDayBtn" type="button" aria-label="Previous day" title="Previous day">&#9664;</button>
+          <button class="btn narrow" id="nextDayBtn" type="button" aria-label="Next day" title="Next day">&#9654;</button>
+        </span>
+        <div class="tonight-strip expl" id="tonightStrip" aria-live="polite"></div>
+      </div>
+
+      <div class="layout">
+        <section class="card chart-card" aria-label="Sky chart">
+          <div class="chart-holder">
+            <svg id="sky" viewBox="0 0 640 640" role="img" aria-label="Circular star chart centered on the zenith, with north at the top"></svg>
+          </div>
+          <div class="controls">
+            <div class="time-row">
+              <div class="time-readout"><span id="clockReadout">&mdash;</span></div>
+              <span class="slider-group">
+                <span class="slider-wrap">
+                  <input type="range" id="timeSlider" min="0" max="1439" step="1" value="1260" aria-label="Time of day" />
+                  <span class="slider-track" aria-hidden="true"></span>
+                  <span class="slider-marks" id="sliderMarks" aria-hidden="true"></span>
+                </span>
+                <button class="btn icon-btn" id="playBtn" type="button" aria-pressed="false" aria-label="Play" title="Play"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg></button>
+              </span>
+              <span class="jump-group" role="group" aria-label="Jump to a time">
+                <button class="btn icon-btn" id="sunriseBtn" type="button" aria-label="Sunrise" title="Sunrise"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 19.5h17"/><path d="M7.5 19.5a4.5 4.5 0 0 1 9 0"/><path d="M12 9.5v-6"/><path d="M9.2 6.2 12 3.4l2.8 2.8"/></svg></button>
+                <button class="btn icon-btn" id="sunsetBtn" type="button" aria-label="Sunset" title="Sunset"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 19.5h17"/><path d="M7.5 19.5a4.5 4.5 0 0 1 9 0"/><path d="M12 3.5v6"/><path d="M9.2 6.5 12 9.3l2.8-2.8"/></svg></button>
+                <button class="btn icon-btn" id="moonriseBtn" type="button" aria-label="Moonrise" title="Moonrise"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 20h19"/><path d="M14.8 2.6a6.8 6.8 0 1 0 6.6 6.6 5.4 5.4 0 0 1-6.6-6.6z" fill="currentColor" stroke="none" transform="translate(-6.5 -0.5) scale(0.95)"/><path d="M18.5 16.5v-6"/><path d="M15.9 13.1l2.6-2.8 2.6 2.8"/></svg></button>
+                <button class="btn icon-btn" id="nowBtn" type="button" aria-label="Now" title="Now"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/></svg></button>
+                <button class="btn icon-btn" id="moonsetBtn" type="button" aria-label="Moonset" title="Moonset"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 20h19"/><path d="M14.8 2.6a6.8 6.8 0 1 0 6.6 6.6 5.4 5.4 0 0 1-6.6-6.6z" fill="currentColor" stroke="none" transform="translate(-6.5 -0.5) scale(0.95)"/><path d="M18.5 7.5v6"/><path d="M15.9 10.4l2.6 2.8 2.6-2.8"/></svg></button>
+                <button class="btn icon-btn" id="darkBtn" type="button" aria-label="Fully dark" title="Fully dark"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 3.5l1.7 4.6 4.6 1.7-4.6 1.7L10 16.1l-1.7-4.6L3.7 9.8l4.6-1.7z"/><path d="M18.2 14.2l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9z"/></svg></button>
+                <button class="btn icon-btn" id="midnightBtn" type="button" aria-label="Midnight" title="Midnight"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 12V6.8"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/></svg></button>
+              </span>
+            </div>
+            <div class="toggle-row">
+              <button class="btn icon-btn lang-btn" id="langBtn" type="button" aria-label="Label language: English" title="Label language: English"><span class="seg seg-en on">EN</span><span class="seg seg-zh">&#20013;&#25991;</span></button>
+              <button class="btn icon-btn" id="labelsBtn" type="button" aria-pressed="false" aria-label="Labels" title="Labels"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12.5 12.5 3.5h8v8l-9 9z"/><circle cx="16.8" cy="7.2" r="1.25" fill="currentColor" stroke="none"/></svg></button>
+              <button class="btn icon-btn" id="planetsBtn" type="button" aria-pressed="true" aria-label="Planets" title="Planets"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><ellipse cx="12" cy="12" rx="9" ry="3.1" transform="rotate(-18 12 12)"/></svg></button>
+              <button class="btn icon-btn" id="linesBtn" type="button" aria-pressed="true" aria-label="Constellations" title="Constellations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 18.5 10 9l4.5 3L19 5.5"/><path d="M10 9l7 8.5" stroke-opacity=".55"/><circle cx="5" cy="18.5" r="1.7" fill="currentColor" stroke="none"/><circle cx="10" cy="9" r="1.7" fill="currentColor" stroke="none"/><circle cx="14.5" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="19" cy="5.5" r="1.7" fill="currentColor" stroke="none"/><circle cx="17" cy="17.5" r="1.5" fill="currentColor" stroke="none"/></svg></button>
+              <button class="btn icon-btn" id="mwBtn" type="button" aria-pressed="false" aria-label="Milky Way" title="Milky Way"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 12c0-1.7 1.2-2.7 2.7-2.7 2 0 3.3 1.5 3.3 3.4 0 3-2.5 5.1-5.6 5.1-3.9 0-6.9-2.6-6.9-6.3C5.5 6.6 8.9 3.5 13 3.5c4.8 0 8.5 3.6 8.5 8.2"/><circle cx="12" cy="12" r="1.35" fill="currentColor" stroke="none"/><circle cx="18.2" cy="6.2" r=".8" fill="currentColor" stroke="none"/><circle cx="5.3" cy="17.4" r=".8" fill="currentColor" stroke="none"/></svg></button>
+              <button class="btn icon-btn" id="redBtn" type="button" aria-pressed="false" aria-label="Red light" title="Red light"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3.5h6l1 4.2a6.4 6.4 0 1 1-8 0z"/><path d="M10 14.5 8.7 20.5M14 14.5l1.3 6" stroke-opacity=".65"/></svg></button>
+            </div>
+            <p class="hint expl" id="dayNote" hidden style="color:var(--accent-ink);font-weight:600">It&rsquo;s daytime in Los Angeles right now, so this is the sky overhead hidden by sunlight &mdash; drag the slider past sunset to preview tonight.</p>
+            <p class="hint expl">The chart shows the whole sky at once: the center is directly overhead, the rim is the horizon. East is on the <em>left</em> &mdash; that&rsquo;s not a mistake. A sky chart is drawn as if you&rsquo;re lying on your back looking up, so east and west swap sides compared with a ground map. Hold it overhead with &ldquo;N&rdquo; pointing north and it matches what you see.</p>
+          </div>
+        </section>
+
+        <div class="side">
+          <section class="card" aria-label="Brightest objects visible">
+            <h2>Brightest up right now</h2>
+            <p class="sub expl" id="listSub">Ranked by brightness for the time on the chart. Tap one to find it in the sky.</p>
+            <ul class="obj-list" id="objList"></ul>
+          </section>
+
+          <section class="card detail" id="detailCard" aria-label="Object details">
+            <h2 id="detailName">Pick a star</h2>
+            <p class="const" id="detailConst">Details</p>
+            <div id="detailBody">
+              <p class="empty">Tap or click any point of light on the chart &mdash; or any row in the list &mdash; and its name, brightness, and where to look will appear here.</p>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <footer class="note expl">
+        <p><strong>Getting the most out of it:</strong> LA&rsquo;s light pollution hides the faint stars, so from the city you&rsquo;ll mostly see the ones drawn biggest here. The chart still shows stars down to magnitude 4.5 &mdash; what you&rsquo;d catch from the mountains or desert on a clear night. Give your eyes 15&ndash;20 minutes to adapt, and use the red-light mode to keep them adapted while you check the chart.</p>
+        <p>Positions are computed in your browser from the catalogued coordinates of each star (J2000) and standard orbital elements for the planets and Moon, good to a fraction of a degree &mdash; plenty for finding things with the naked eye. Star data: Yale Bright Star Catalog values for the brightest named stars.</p>
+      </footer>
+
+      <!-- BUILD STAMP: Format is: number, space, (Mon D, YYYY) — plus the word " Published" appended after the date ONLY if that exact build has been published; omit "Published" entirely if it has not.
+           Rules for future editors:
+           - A new content build: increment the number by 1, update the parenthesised date to the new build date, and OMIT "Published" (a fresh build is unpublished by definition).
+           - Publishing: when the owner asks to publish that exact build, adding " Published" to this line is a status-only change — do NOT increment the number or change the date for it — and that status version is what then gets shared/published.
+           Do NOT add the "expl" class — this must stay visible even when explanations are hidden. -->
+      <p class="build-stamp">35 (Oct 13, 2026) · Published</p>
+    </div>
+
+    <!-- Wikipedia article pop-up: opened by the name links in the detail
+         panel. Closing it (✕, backdrop tap, or Esc) returns to the map
+         exactly as it was — no state is touched while it is open. -->
+    <div class="wiki-overlay" id="wikiOverlay" hidden role="dialog" aria-modal="true" aria-label="Wikipedia article">
+      <div class="wiki-panel">
+        <div class="wiki-head">
+          <span class="wiki-title" id="wikiTitle">Wikipedia</span>
+          <a class="wiki-open" id="wikiOpen" href="#" target="_blank" rel="noopener">Open in new tab &#8599;</a>
+          <button class="btn wiki-close" id="wikiClose" type="button" aria-label="Close article">&#10005;</button>
+        </div>
+        <iframe class="wiki-frame" id="wikiFrame" title="Wikipedia article"></iframe>
+      </div>
+    </div>
+
+    <script>
+    (function () {
+      "use strict";
+      var LAT = 34.0522, LON = -118.2437; // Los Angeles
+      var RAD = Math.PI / 180, DEG = 180 / Math.PI;
+      function norm360(x) { x = x % 360; return x < 0 ? x + 360 : x; }
+      function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
+
+      /* ---------------- Star catalog ----------------
+         name, RA (hours), Dec (deg), mag, constellation, spectral class */
+      var STARS = [
+        ["Sirius",6.7522,-16.7161,-1.46,"Canis Major","A"],
+        ["Arcturus",14.2610,19.1824,-0.05,"Boötes","K"],
+        ["Vega",18.6156,38.7837,0.03,"Lyra","A"],
+        ["Capella",5.2782,45.9980,0.08,"Auriga","G"],
+        ["Rigel",5.2423,-8.2016,0.13,"Orion","B"],
+        ["Procyon",7.6550,5.2250,0.34,"Canis Minor","F"],
+        ["Betelgeuse",5.9194,7.4070,0.42,"Orion","M"],
+        ["Altair",19.8464,8.8683,0.76,"Aquila","A"],
+        ["Aldebaran",4.5987,16.5093,0.86,"Taurus","K"],
+        ["Antares",16.4901,-26.4320,0.96,"Scorpius","M"],
+        ["Spica",13.4199,-11.1613,0.97,"Virgo","B"],
+        ["Pollux",7.7553,28.0262,1.14,"Gemini","K"],
+        ["Fomalhaut",22.9608,-29.6222,1.16,"Piscis Austrinus","A"],
+        ["Deneb",20.6905,45.2803,1.25,"Cygnus","A"],
+        ["Regulus",10.1395,11.9672,1.35,"Leo","B"],
+        ["Adhara",6.9771,-28.9721,1.50,"Canis Major","B"],
+        ["Castor",7.5766,31.8883,1.58,"Gemini","A"],
+        ["Shaula",17.5601,-37.1038,1.62,"Scorpius","B"],
+        ["Bellatrix",5.4189,6.3497,1.64,"Orion","B"],
+        ["Elnath",5.4382,28.6075,1.68,"Taurus","B"],
+        ["Alnilam",5.6036,-1.2019,1.69,"Orion","B"],
+        ["Mirfak",3.4054,49.8612,1.69,"Perseus","F"],
+        ["Alnitak",5.6793,-1.9426,1.77,"Orion","O"],
+        ["Alioth",12.9005,55.9598,1.77,"Ursa Major","A"],
+        ["Dubhe",11.0621,61.7510,1.79,"Ursa Major","K"],
+        ["Kaus Australis",18.4029,-34.3846,1.79,"Sagittarius","B"],
+        ["Wezen",7.1399,-26.3932,1.84,"Canis Major","F"],
+        ["Alkaid",13.7923,49.3133,1.85,"Ursa Major","B"],
+        ["Alhena",6.6285,16.3994,1.92,"Gemini","A"],
+        ["Mirzam",6.3783,-17.9559,1.98,"Canis Major","B"],
+        ["Alphard",9.4598,-8.6586,1.98,"Hydra","K"],
+        ["Polaris",2.5303,89.2641,1.98,"Ursa Minor","F"],
+        ["Hamal",2.1196,23.4624,2.00,"Aries","K"],
+        ["Nunki",18.9211,-26.2967,2.02,"Sagittarius","B"],
+        ["Diphda",0.7265,-17.9866,2.04,"Cetus","K"],
+        ["Mirach",1.1622,35.6205,2.05,"Andromeda","M"],
+        ["Alpheratz",0.1398,29.0906,2.06,"Andromeda","B"],
+        ["Kochab",14.8451,74.1555,2.07,"Ursa Minor","K"],
+        ["Rasalhague",17.5889,12.5603,2.07,"Ophiuchus","A"],
+        ["Algol",3.1361,40.9556,2.09,"Perseus","B"],
+        ["Saiph",5.7959,-9.6696,2.09,"Orion","B"],
+        ["Almach",2.0654,42.3297,2.10,"Andromeda","K"],
+        ["Denebola",11.8177,14.5721,2.11,"Leo","A"],
+        ["Sadr",20.3705,40.2567,2.20,"Cygnus","F"],
+        ["Alphecca",15.5781,26.7249,2.22,"Corona Borealis","A"],
+        ["Mintaka",5.5334,-0.2991,2.23,"Orion","O"],
+        ["Eltanin",17.9434,51.4889,2.23,"Draco","K"],
+        ["Schedar",0.6751,56.5373,2.24,"Cassiopeia","K"],
+        ["Caph",0.1530,59.1498,2.28,"Cassiopeia","F"],
+        ["Dschubba",16.0056,-22.6217,2.29,"Scorpius","B"],
+        ["Wei",16.8362,-34.2932,2.29,"Scorpius","K"],
+        ["Merak",11.0307,56.3824,2.34,"Ursa Major","A"],
+        ["Izar",14.7498,27.0742,2.35,"Boötes","K"],
+        ["Enif",21.7364,9.8750,2.39,"Pegasus","K"],
+        ["Phecda",11.8972,53.6948,2.41,"Ursa Major","A"],
+        ["Scheat",23.0629,28.0822,2.42,"Pegasus","M"],
+        ["Sabik",17.1732,-15.7244,2.43,"Ophiuchus","A"],
+        ["Alderamin",21.3092,62.5856,2.44,"Cepheus","A"],
+        ["Aludra",7.4016,-29.3031,2.45,"Canis Major","B"],
+        ["Gienah",20.7702,33.9703,2.46,"Cygnus","K"],
+        ["Gamma Cassiopeiae",0.9451,60.7167,2.47,"Cassiopeia","B"],
+        ["Markab",23.0793,15.2053,2.48,"Pegasus","B"],
+        ["Menkar",3.0382,4.0897,2.53,"Cetus","M"],
+        ["Zosma",11.2351,20.5237,2.56,"Leo","A"],
+        ["Arneb",5.5450,-17.8222,2.58,"Lepus","F"],
+        ["Gienah Corvi",12.2614,-17.5419,2.58,"Corvus","B"],
+        ["Zubeneschamali",15.2834,-9.3830,2.61,"Libra","B"],
+        ["Acrab",16.0903,-19.8054,2.62,"Scorpius","B"],
+        ["Unukalhai",15.7343,6.4257,2.63,"Serpens","K"],
+        ["Sheratan",1.9107,20.8080,2.64,"Aries","A"],
+        ["Kraz",12.5726,-23.3961,2.65,"Corvus","G"],
+        ["Muphrid",13.9112,18.3768,2.68,"Boötes","G"],
+        ["Ruchbah",1.4303,60.2353,2.68,"Cassiopeia","A"],
+        ["Hassaleh",4.9506,33.1661,2.69,"Auriga","K"],
+        ["Seginus",14.5384,38.3082,2.70,"Boötes","A"],
+        ["Kaus Media",18.3492,-29.8280,2.72,"Sagittarius","K"],
+        ["Tarazed",19.7706,10.6133,2.72,"Aquila","K"],
+        ["Yed Prior",16.2385,-3.6942,2.73,"Ophiuchus","M"],
+        ["Porrima",12.6943,-1.4494,2.74,"Virgo","F"],
+        ["Zubenelgenubi",14.8479,-16.0418,2.75,"Libra","A"],
+        ["Cebalrai",17.7245,4.5673,2.77,"Ophiuchus","K"],
+        ["Kornephoros",16.5036,21.4896,2.77,"Hercules","G"],
+        ["Cursa",5.1303,-5.0864,2.78,"Eridanus","A"],
+        ["Rastaban",17.5074,52.3014,2.79,"Draco","G"],
+        ["Nihal",5.4722,-20.7592,2.81,"Lepus","G"],
+        ["Cor Caroli",12.9335,38.3184,2.81,"Canes Venatici","A"],
+        ["Zeta Herculis",16.6884,31.6027,2.81,"Hercules","F"],
+        ["Kaus Borealis",18.4702,-25.4217,2.82,"Sagittarius","B"],
+        ["Algenib",0.2206,15.1836,2.83,"Pegasus","B"],
+        ["Vindemiatrix",13.0360,10.9591,2.85,"Virgo","G"],
+        ["Deneb Algedi",21.7832,-16.1270,2.85,"Capricornus","A"],
+        ["Mebsuta",6.7322,25.1311,2.86,"Gemini","G"],
+        ["Tejat",6.2479,22.5136,2.86,"Gemini","M"],
+        ["Delta Cygni",19.7495,45.1308,2.86,"Cygnus","B"],
+        ["Alcyone",3.7901,24.1051,2.87,"Taurus","B"],
+        ["Epsilon Persei",3.9645,40.0100,2.89,"Perseus","B"],
+        ["Gomeisa",7.4525,8.2893,2.89,"Canis Minor","B"],
+        ["Pi Scorpii",15.9749,-26.1141,2.89,"Scorpius","B"],
+        ["Sadalsuud",21.5260,-5.5712,2.90,"Aquarius","G"],
+        ["Gamma Persei",3.0792,53.5063,2.93,"Perseus","F"],
+        ["Algorab",12.4971,-16.5154,2.94,"Corvus","A"],
+        ["Matar",22.7168,30.2264,2.94,"Pegasus","G"],
+        ["Sadalmelik",21.0963,-0.3206,2.95,"Aquarius","G"],
+        ["Zaurak",3.9750,-13.5092,2.95,"Eridanus","M"],
+        ["Zeta Tauri",5.6274,21.1425,2.97,"Taurus","B"],
+        ["Ras Elased",9.7613,23.7744,2.98,"Leo","G"],
+        ["Alnasl",18.0956,-30.4244,2.99,"Sagittarius","K"],
+        ["Pherkad",15.3455,71.8340,3.00,"Ursa Minor","A"],
+        ["Delta Persei",3.7152,47.7976,3.01,"Perseus","B"],
+        ["Almaaz",5.0333,43.8233,3.03,"Auriga","F"],
+        ["Dabih",20.3502,-14.7814,3.05,"Capricornus","K"],
+        ["Pi Herculis",17.2492,36.8064,3.16,"Hercules","K"],
+        ["Albireo",19.5120,27.9597,3.18,"Cygnus","K"],
+        ["Sulafat",18.9824,32.6896,3.25,"Lyra","B"],
+        ["Delta Andromedae",0.6573,30.8611,3.27,"Andromeda","K"],
+        ["Megrez",12.2571,57.0326,3.31,"Ursa Major","A"],
+        ["Chertan",11.2370,15.4297,3.32,"Leo","A"],
+        ["Segin",1.9066,63.6700,3.35,"Cassiopeia","B"],
+        ["Zeta Cephei",22.1810,58.2012,3.35,"Cepheus","K"],
+        ["Meissa",5.5856,9.9342,3.33,"Orion","O"],
+        ["Sheliak",18.8347,33.3627,3.52,"Lyra","B"],
+        ["Eta Herculis",16.7150,38.9231,3.53,"Hercules","G"],
+        ["Baham",22.1822,6.1972,3.53,"Pegasus","A"],
+        ["Wasat",7.3354,21.9823,3.53,"Gemini","F"],
+        ["Altarf",8.3730,9.1873,3.53,"Cancer","K"],
+        ["Eta Piscium",1.5267,15.3453,3.62,"Pisces","G"],
+        ["Rotanev",20.6222,14.6000,3.63,"Delphinus","F"],
+        ["Nusakan",15.4650,29.2956,3.68,"Corona Borealis","F"],
+        ["Alshain",19.9219,6.4068,3.71,"Aquila","G"],
+        ["Sualocin",20.6621,15.9156,3.77,"Delphinus","B"],
+        ["Alrescha",23.9758,2.7610,3.82,"Pisces","A"],
+        ["Epsilon Herculis",17.0093,30.9260,3.92,"Hercules","A"],
+        ["Alchiba",12.1393,-24.7284,4.03,"Corvus","F"],
+        ["Zeta Ursae Minoris",15.7342,77.7945,4.32,"Ursa Minor","A"],
+        ["Yildun",17.5360,86.5860,4.36,"Ursa Minor","A"]
+      ];
+      var STAR_BY_NAME = {};
+      STARS.forEach(function (s) { STAR_BY_NAME[s[0]] = s; });
+
+      var LINES = [
+        ["Dubhe","Merak","Phecda","Megrez","Dubhe"],
+        ["Megrez","Alioth","Mizar","Alkaid"],
+        ["Polaris","Yildun","Zeta Ursae Minoris","Kochab","Pherkad"],
+        ["Caph","Schedar","Gamma Cassiopeiae","Ruchbah","Segin"],
+        ["Betelgeuse","Meissa","Bellatrix"],
+        ["Betelgeuse","Alnitak","Alnilam","Mintaka","Bellatrix"],
+        ["Alnitak","Saiph","Rigel","Mintaka"],
+        ["Aldebaran","Alcyone"],
+        ["Aldebaran","Zeta Tauri"],
+        ["Aldebaran","Elnath"],
+        ["Capella","Menkalinan","Elnath"],
+        ["Capella","Almaaz","Hassaleh","Elnath"],
+        ["Castor","Mebsuta","Tejat"],
+        ["Pollux","Wasat","Alhena"],
+        ["Castor","Pollux"],
+        ["Regulus","Algieba","Zosma","Chertan","Denebola","Zosma"],
+        ["Regulus","Ras Elased"],
+        ["Spica","Porrima","Vindemiatrix"],
+        ["Arcturus","Muphrid"],
+        ["Arcturus","Izar","Seginus","Nekkar"],
+        ["Vega","Sheliak","Sulafat","Vega"],
+        ["Deneb","Sadr","Albireo"],
+        ["Sadr","Gienah"],
+        ["Sadr","Delta Cygni"],
+        ["Altair","Tarazed"],
+        ["Altair","Alshain"],
+        ["Acrab","Dschubba","Pi Scorpii"],
+        ["Acrab","Antares","Wei","Shaula","Lesath"],
+        ["Alnasl","Kaus Media","Kaus Australis","Ascella","Nunki","Kaus Borealis","Kaus Media"],
+        ["Markab","Scheat","Alpheratz","Algenib","Markab"],
+        ["Scheat","Matar"],
+        ["Scheat","Baham","Enif"],
+        ["Alpheratz","Delta Andromedae","Mirach","Almach"],
+        ["Gamma Persei","Mirfak","Delta Persei","Epsilon Persei"],
+        ["Mirfak","Zeta Persei","Algol"],
+        ["Hamal","Sheratan"],
+        ["Eta Piscium","Alrescha"],
+        ["Menkar","Diphda"],
+        ["Cursa","Zaurak"],
+        ["Sirius","Mirzam"],
+        ["Sirius","Wezen","Adhara","Aludra"],
+        ["Procyon","Gomeisa"],
+        ["Gienah Corvi","Algorab","Kraz","Alchiba","Gienah Corvi"],
+        ["Nusakan","Alphecca"],
+        ["Kornephoros","Zeta Herculis","Eta Herculis","Pi Herculis","Epsilon Herculis","Zeta Herculis"],
+        ["Rasalhague","Cebalrai","Yed Prior"],
+        ["Rasalhague","Sabik"],
+        ["Zubenelgenubi","Zubeneschamali"],
+        ["Rastaban","Eltanin"],
+        ["Alderamin","Zeta Cephei","Errai","Alfirk","Alderamin"],
+        ["Sadalmelik","Sadalsuud","Skat"],
+        ["Dabih","Deneb Algedi"],
+        ["Sualocin","Rotanev"],
+        ["Arneb","Nihal"]
+      ];
+      // Extra stars referenced only by lines
+      [["Lesath",17.5139,-37.2973,2.62,"Scorpius","B"],
+       ["Ascella",19.0435,-29.8800,2.60,"Sagittarius","A"],
+       ["Menkalinan",5.9921,44.9474,1.90,"Auriga","A"],
+       ["Alfirk",21.4777,70.5604,3.23,"Cepheus","B"],
+       ["Errai",23.6589,77.6322,3.21,"Cepheus","K"],
+       ["Skat",22.9050,-15.8220,3.27,"Aquarius","A"],
+       ["Zeta Persei",3.9083,31.8833,2.84,"Perseus","B"]
+      ].forEach(function (s) { if (!STAR_BY_NAME[s[0]]) { STARS.push(s); STAR_BY_NAME[s[0]] = s; } });
+
+      var FACTS = {
+        "Sirius": "The brightest star in the night sky — a white-hot star just 8.6 light-years away, with a white-dwarf companion nicknamed 'the Pup'.",
+        "Betelgeuse": "A red supergiant so large that if it sat where the Sun is, it would swallow Earth. It varies in brightness and will one day explode as a supernova.",
+        "Rigel": "A blue supergiant shining with roughly 120,000 times the Sun's luminosity, about 860 light-years away.",
+        "Vega": "Once the north pole star (around 12,000 BCE) and will be again — Earth's axis slowly precesses. It spins so fast it bulges at the equator.",
+        "Polaris": "The current North Star. It sits within a degree of the north celestial pole, so it barely moves while the whole sky wheels around it.",
+        "Arcturus": "The brightest star in the northern sky, an orange giant racing through space — in about half a million years it will have faded from naked-eye view.",
+        "Antares": "The 'rival of Mars' — a red supergiant whose deep red-orange color is often confused with the planet. Its name is Greek for 'anti-Ares'.",
+        "Aldebaran": "The orange eye of Taurus the bull. The Hyades cluster forms the bull's V-shaped face around it, though Aldebaran itself is a foreground star.",
+        "Altair": "One corner of the Summer Triangle. It rotates in under 9 hours — so fast it's noticeably flattened.",
+        "Deneb": "The tail of Cygnus the swan and the faintest corner of the Summer Triangle — yet intrinsically one of the brightest stars known, up to 200,000 times the Sun's luminosity.",
+        "Spica": "A close binary of two blue stars so near each other they distort into egg shapes, in Virgo the maiden.",
+        "Regulus": "The 'little king' at the heart of Leo. Copernicus is credited with the name.",
+        "Procyon": "'Before the dog' in Greek — it rises just before Sirius, the Dog Star. Like Sirius it has a white-dwarf companion.",
+        "Capella": "Actually four stars: two yellow giants orbiting each other, plus a pair of red dwarfs. One of the brightest stars in the sky.",
+        "Fomalhaut": "The lonely bright star of the southern autumn sky, circled by a famous ring of dust and debris 25 light-years away.",
+        "Algol": "The 'Demon Star' — an eclipsing binary that visibly dims every 2.87 days as one star passes in front of the other. Ancient observers noticed.",
+        "Castor": "Looks single but is a system of six stars. Its twin Pollux is an orange giant — the heads of the Gemini twins.",
+        "Pollux": "An orange giant with a confirmed exoplanet, slightly brighter than its 'twin' Castor.",
+        "Alcyone": "The brightest star of the Pleiades, the Seven Sisters — a young open cluster about 444 light-years away. Best with binoculars.",
+        "Albireo": "A famous double star: through a small telescope it splits into a gold star and a blue-green companion.",
+        "Dubhe": "One of the two 'Pointer' stars of the Big Dipper — a line through Dubhe and Merak leads straight to Polaris.",
+        "Alkaid": "The end of the Big Dipper's handle. Unlike most Dipper stars, it isn't part of the Ursa Major moving group.",
+        "Mizar": "The middle star of the Dipper's handle. Sharp eyes can spot its faint companion Alcor beside it — an ancient eyesight test.",
+        "Kaus Australis": "The brightest star of Sagittarius, at the bottom of the 'Teapot' — an asterism far easier to spot than the archer it's part of."
+      };
+
+      var SPCOLOR = { O:"#bcd4ff", B:"#cddcff", A:"#eef2ff", F:"#fff3da", G:"#ffe9b0", K:"#ffc98a", M:"#ff9d6b" };
+
+      function parseHex(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
+      /* Sky-gradient stop colours (night → day per stop), pre-parsed
+         to RGB triples ONCE at load: drawSky used to re-parse all six
+         hex strings — 36 parseInt calls — on every frame just to
+         blend them for the daylight wash (Build 31). */
+      var SKY_STOPS = [
+        [parseHex("#16264f"), parseHex("#8fc0f2")],
+        [parseHex("#0b1735"), parseHex("#4a84c4")],
+        [parseHex("#04060f"), parseHex("#234a80")]
+      ];
+      function mixRGB(pair, t) {
+        var pa = pair[0], pb = pair[1], out = "#";
+        for (var i = 0; i < 3; i++) {
+          var v = Math.round(pa[i] + (pb[i] - pa[i]) * t);
+          out += (v < 16 ? "0" : "") + v.toString(16);
+        }
+        return out;
+      }
+
+      /* Chinese names shown beside the English in the detail panel:
+         traditional Chinese star names for the Moon, the planets, and the
+         brighter named stars (per the standard Chinese star-name lists).
+         Constellations and moon phases have their own maps below. */
+      var ZH_NAME = {
+        "Moon": "月亮", "Sun": "太阳",
+        "Mercury": "水星", "Venus": "金星", "Mars": "火星", "Jupiter": "木星", "Saturn": "土星",
+        "Sirius": "天狼星", "Arcturus": "大角星", "Vega": "织女星", "Capella": "五车二",
+        "Rigel": "参宿七", "Procyon": "南河三", "Betelgeuse": "参宿四", "Altair": "牛郎星",
+        "Aldebaran": "毕宿五", "Antares": "心宿二", "Spica": "角宿一", "Pollux": "北河三",
+        "Fomalhaut": "北落师门", "Deneb": "天津四", "Regulus": "轩辕十四", "Castor": "北河二",
+        "Bellatrix": "参宿五", "Alnilam": "参宿二", "Alnitak": "参宿一", "Mintaka": "参宿三",
+        "Saiph": "参宿六", "Alioth": "玉衡", "Dubhe": "天枢", "Merak": "天璇",
+        "Phecda": "天玑", "Megrez": "天权", "Mizar": "开阳", "Alkaid": "摇光",
+        "Polaris": "北极星", "Kochab": "北极二", "Pherkad": "北极一", "Algol": "大陵五",
+        "Denebola": "五帝座一", "Alcyone": "昴宿六", "Mirfak": "天船三",
+        "Hamal": "娄宿三", "Sheratan": "娄宿一", "Alhena": "井宿三", "Tejat": "井宿一",
+        "Elnath": "五车五", "Menkalinan": "五车三", "Hassaleh": "五车一",
+        "Shaula": "尾宿八", "Lesath": "尾宿九", "Wei": "尾宿二",
+        "Dschubba": "房宿三", "Pi Scorpii": "房宿一",
+        "Kaus Australis": "箕宿三", "Kaus Media": "箕宿二", "Alnasl": "箕宿一",
+        "Nunki": "斗宿四", "Ascella": "斗宿六",
+        "Wezen": "弧矢一", "Adhara": "弧矢七", "Mirzam": "军市一",
+        "Diphda": "土司空", "Mirach": "奎宿九", "Almach": "天大将军一", "Alpheratz": "壁宿二",
+        "Algenib": "壁宿一", "Sadr": "天津一", "Schedar": "王良四", "Caph": "王良一",
+        "Gamma Cassiopeiae": "策", "Scheat": "室宿二", "Markab": "室宿一",
+        "Zubeneschamali": "氐宿四", "Zubenelgenubi": "氐宿一", "Alphecca": "贯索四",
+        "Rasalhague": "候", "Sadalsuud": "虚宿一", "Dabih": "牛宿一",
+        "Alshain": "河鼓一", "Tarazed": "河鼓三", "Zeta Tauri": "天关", "Alphard": "星宿一",
+        "Kaus Borealis": "斗宿二", "Aludra": "弧矢二", "Cor Caroli": "常陈一",
+        "Gienah Corvi": "轸宿一", "Algorab": "轸宿三", "Kraz": "轸宿四", "Alchiba": "右辖",
+        "Zosma": "西次相", "Chertan": "西上相", "Arneb": "厕一", "Nihal": "厕二",
+        "Meissa": "觜宿一", "Nusakan": "贯索三", "Sadalmelik": "危宿一",
+        "Baham": "危宿二", "Enif": "危宿三", "Gienah": "天津九", "Delta Cygni": "天津二",
+        "Ruchbah": "阁道三", "Segin": "阁道二", "Rastaban": "天棓三", "Eltanin": "天棓四",
+        "Yildun": "勾陈二", "Zeta Ursae Minoris": "勾陈四",
+        "Izar": "梗河一", "Sabik": "宋", "Alderamin": "天钩五", "Menkar": "天囷一",
+        "Porrima": "东上将", "Vindemiatrix": "东上相", "Cebalrai": "宗正一",
+        "Sulafat": "渐台三", "Sheliak": "渐台二", "Wasat": "天樽二",
+        "Sualocin": "瓠瓜一", "Rotanev": "瓠瓜四", "Acrab": "房宿四",
+        "Unukalhai": "蜀", "Muphrid": "右摄提一", "Seginus": "招摇",
+        "Yed Prior": "梁", "Kornephoros": "河中", "Cursa": "玉井三",
+        "Deneb Algedi": "垒壁阵四", "Mebsuta": "井宿五", "Gomeisa": "南河二",
+        "Zaurak": "天苑一", "Zeta Herculis": "天纪二", "Epsilon Herculis": "天纪三",
+        "Matar": "离宫四", "Almaaz": "柱一", "Albireo": "辇道七",
+        "Ras Elased": "轩辕九", "Alfirk": "上卫增一", "Errai": "少卫增八",
+        "Skat": "羽林军二十六", "Alrescha": "外屏七", "Eta Piscium": "右更二",
+        "Delta Andromedae": "奎宿五", "Altarf": "柳宿十", "Pi Herculis": "女床一",
+        "Zeta Cephei": "造父二", "Zeta Persei": "卷舌四", "Epsilon Persei": "卷舌二",
+        "Gamma Persei": "天船二", "Delta Persei": "天船五",
+        "Eta Herculis": "武仙座η星"
+      };
+      var ZH_CONST = {
+        "Canis Major": "大犬座", "Canis Minor": "小犬座", "Boötes": "牧夫座", "Lyra": "天琴座",
+        "Auriga": "御夫座", "Orion": "猎户座", "Aquila": "天鹰座", "Taurus": "金牛座",
+        "Scorpius": "天蝎座", "Virgo": "处女座", "Gemini": "双子座", "Piscis Austrinus": "南鱼座",
+        "Cygnus": "天鹅座", "Leo": "狮子座", "Perseus": "英仙座", "Sagittarius": "人马座",
+        "Ursa Major": "大熊座", "Ursa Minor": "小熊座", "Aries": "白羊座", "Cetus": "鲸鱼座",
+        "Andromeda": "仙女座", "Ophiuchus": "蛇夫座", "Serpens": "巨蛇座", "Libra": "天秤座",
+        "Hercules": "武仙座", "Draco": "天龙座", "Cassiopeia": "仙后座", "Cepheus": "仙王座",
+        "Pegasus": "飞马座", "Aquarius": "宝瓶座", "Capricornus": "摩羯座", "Lepus": "天兔座",
+        "Eridanus": "波江座", "Hydra": "长蛇座", "Corvus": "乌鸦座", "Corona Borealis": "北冕座",
+        "Canes Venatici": "猎犬座", "Pisces": "双鱼座", "Delphinus": "海豚座", "Cancer": "巨蟹座"
+      };
+      var ZH_PHASE = {
+        "New Moon": "新月", "Waxing Crescent": "娥眉月", "First Quarter": "上弦月",
+        "Waxing Gibbous": "盈凸月", "Full Moon": "满月", "Waning Gibbous": "亏凸月",
+        "Last Quarter": "下弦月", "Waning Crescent": "残月"
+      };
+
+      /* ---------------- Astronomy core ---------------- */
+      function julian(date) { return date.getTime() / 86400000 + 2440587.5; }
+      function lstDeg(jd) {
+        var T = (jd - 2451545.0) / 36525;
+        var gmst = 280.46061837 + 360.98564736629 * (jd - 2451545) + 0.000387933 * T * T - T * T * T / 38710000;
+        return norm360(gmst + LON);
+      }
+      function altAz(raH, dec, lst) {
+        var ha = ((lst - raH * 15 + 540) % 360) - 180;
+        var haR = ha * RAD, decR = dec * RAD, latR = LAT * RAD;
+        var alt = Math.asin(Math.sin(decR) * Math.sin(latR) + Math.cos(decR) * Math.cos(latR) * Math.cos(haR));
+        var az = Math.atan2(Math.sin(haR), Math.cos(haR) * Math.sin(latR) - Math.tan(decR) * Math.cos(latR)) * DEG + 180;
+        return { alt: alt * DEG, az: norm360(az) };
+      }
+      function sunRaDec(date) {
+        var d = julian(date) - 2451545.0;
+        var L = norm360(280.460 + 0.9856474 * d);
+        var g = norm360(357.528 + 0.9856003 * d) * RAD;
+        var lam = (L + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * RAD;
+        var eps = (23.439 - 0.0000004 * d) * RAD;
+        var ra = Math.atan2(Math.cos(eps) * Math.sin(lam), Math.cos(lam)) * DEG / 15;
+        var dec = Math.asin(Math.sin(eps) * Math.sin(lam)) * DEG;
+        return { ra: norm360(ra * 15) / 15, dec: dec, lon: norm360(lam * DEG) };
+      }
+      function moonRaDec(date) {
+        var d = julian(date) - 2451545.0;
+        var L = norm360(218.316 + 13.176396 * d);
+        var M = norm360(134.963 + 13.064993 * d) * RAD;
+        var F = norm360(93.272 + 13.229350 * d) * RAD;
+        var lon = L + 6.289 * Math.sin(M);
+        var lat = 5.128 * Math.sin(F);
+        var eps = 23.439 * RAD, lamR = lon * RAD, latR = lat * RAD;
+        var ra = Math.atan2(Math.sin(lamR) * Math.cos(eps) - Math.tan(latR) * Math.sin(eps), Math.cos(lamR)) * DEG / 15;
+        var dec = Math.asin(Math.sin(latR) * Math.cos(eps) + Math.cos(latR) * Math.sin(eps) * Math.sin(lamR)) * DEG;
+        return { ra: norm360(ra * 15) / 15, dec: dec, lon: lon };
+      }
+      // JPL approximate Keplerian elements [a(AU), e, I(deg), L(deg), longPeri(deg), longNode(deg)] + rates per Julian century
+      var PLANETS = [
+        { name: "Mercury", el: [0.38709927, 0.20563593, 7.00497902, 252.25032350, 77.45779628, 48.33076593], rt: [0.00000037, 0.00001906, -0.00594749, 149472.67411175, 0.16047689, -0.12534081], color: "#cfc4b0", fact: "The swift planet — it never strays far from the Sun, so look for it low in twilight, just after sunset or before sunrise." },
+        { name: "Venus", el: [0.72333566, 0.00677672, 3.39467605, 181.97909950, 131.60246718, 76.67984255], rt: [0.00000390, -0.00004107, -0.00078890, 58517.81538729, 0.00268329, -0.27769418], color: "#fff2cf", fact: "The brightest planet by far, thanks to its reflective cloud deck. It's often called the Evening Star or Morning Star." },
+        { name: "Mars", el: [1.52371034, 0.09339410, 1.84969142, -4.55343205, -23.94362959, 49.55953891], rt: [0.00001847, 0.00007882, -0.00813131, 19140.30268499, 0.44441088, -0.29257343], color: "#ffab7a", fact: "The red planet — its rusty-orange color comes from iron oxide dust. Brightness varies hugely as Earth and Mars drift closer and farther apart." },
+        { name: "Jupiter", el: [5.20288700, 0.04838624, 1.30439695, 34.39644051, 14.72847983, 100.47390909], rt: [-0.00011607, -0.00013253, -0.00183714, 3034.74612775, 0.21252661, 0.20469106], color: "#f5ddae", fact: "The largest planet — more massive than all the others combined. Binoculars reveal its four Galilean moons lined up beside it." },
+        { name: "Saturn", el: [9.53667594, 0.05386179, 2.48599187, 49.95424423, 92.59887831, 113.66242448], rt: [-0.00125060, -0.00050991, 0.00193609, 1222.49362201, -0.41897216, -0.28867794], color: "#eed9a4", fact: "The ringed planet. To the eye it's a steady, pale-gold 'star'; even a small telescope shows the rings." }
+      ];
+      var EARTH_EL = { el: [1.00000261, 0.01671123, -0.00001531, 100.46457166, 102.93768193, 0.0], rt: [0.00000562, -0.00004392, -0.01294668, 35999.37244981, 0.32327364, 0.0] };
+      function helioXYZ(el, rt, T) {
+        var a = el[0] + rt[0] * T, e = el[1] + rt[1] * T, I = (el[2] + rt[2] * T) * RAD;
+        var L = norm360(el[3] + rt[3] * T) * RAD, wp = (el[4] + rt[4] * T) * RAD, Om = (el[5] + rt[5] * T) * RAD;
+        var w = wp - Om, M = norm360((L - wp) * DEG) * RAD;
+        var E = M, i;
+        for (i = 0; i < 8; i++) E = E - (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
+        var xp = a * (Math.cos(E) - e), yp = a * Math.sqrt(1 - e * e) * Math.sin(E);
+        var cw = Math.cos(w), sw = Math.sin(w), cO = Math.cos(Om), sO = Math.sin(Om), cI = Math.cos(I), sI = Math.sin(I);
+        return {
+          x: (cw * cO - sw * sO * cI) * xp + (-sw * cO - cw * sO * cI) * yp,
+          y: (cw * sO + sw * cO * cI) * xp + (-sw * sO + cw * cO * cI) * yp,
+          z: (sw * sI) * xp + (cw * sI) * yp
+        };
+      }
+      function planetRaDec(p, T, ee) {
+        // T (Julian centuries) and Earth's heliocentric position
+        // (ee) are computed ONCE per computeObjects call and shared
+        // by all five planets — this used to re-derive both per
+        // planet, i.e. five identical Kepler solves for Earth on
+        // every frame (Build 31).
+        var pe = helioXYZ(p.el, p.rt, T);
+        var x = pe.x - ee.x, y = pe.y - ee.y, z = pe.z - ee.z;
+        var eps = 23.4393 * RAD;
+        var yq = y * Math.cos(eps) - z * Math.sin(eps), zq = y * Math.sin(eps) + z * Math.cos(eps);
+        var ra = norm360(Math.atan2(yq, x) * DEG) / 15;
+        var dec = Math.atan2(zq, Math.sqrt(x * x + yq * yq)) * DEG;
+        var dist = Math.sqrt(x * x + y * y + z * z);
+        var helio = Math.sqrt(pe.x * pe.x + pe.y * pe.y + pe.z * pe.z);
+        return { ra: ra, dec: dec, dist: dist, helio: helio };
+      }
+      var PLANET_MAG0 = { Mercury: -0.60, Venus: -4.47, Mars: -1.52, Jupiter: -9.40, Saturn: -8.88 };
+      var PLANET_MAGLIM = { Mercury: [-1.5, 2.0], Venus: [-4.9, -3.9], Mars: [-2.9, 1.8], Jupiter: [-2.9, -1.6], Saturn: [-0.5, 1.3] };
+      function planetMag(name, helioDist, geoDist) {
+        // Standard V(1,0) system, clamped to each planet's plausible naked-eye range (phase ignored)
+        var m = PLANET_MAG0[name] + 5 * Math.log10(Math.max(helioDist * geoDist, 0.01));
+        var lim = PLANET_MAGLIM[name];
+        return clamp(m, lim[0], lim[1]);
+      }
+      function moonPhase(date) {
+        var s = sunRaDec(date), m = moonRaDec(date);
+        return moonPhaseFromLons(s.lon, m.lon);
+      }
+      // The phase depends only on the Sun's and Moon's ecliptic
+      // longitudes; a caller that already holds them (computeObjects)
+      // passes them in instead of re-running both ephemerides.
+      function moonPhaseFromLons(sunLon, moonLon) {
+        var elong = norm360(moonLon - sunLon);
+        var illum = (1 - Math.cos(elong * RAD)) / 2;
+        var names = ["New Moon", "Waxing Crescent", "First Quarter", "Waxing Gibbous", "Full Moon", "Waning Gibbous", "Last Quarter", "Waning Crescent"];
+        var idx = Math.floor(((elong + 22.5) % 360) / 45);
+        return { name: names[idx], illum: illum, elong: elong };
+      }
+
+      /* ---------------- State & DOM ---------------- */
+      var svg = document.getElementById("sky");
+      var NS = "http://www.w3.org/2000/svg";
+      var CX = 320, CY = 320, R = 296;
+      var state = {
+        date: new Date(),
+        live: true,
+        playing: false,
+        labels: false,
+        labelLang: "en", // language of the on-chart star, planet, Sun, and Moon labels ("en" | "zh"); UI text keeps its original language
+        planets: true,
+        lines: true,
+        mw: false,
+        eventLabel: null,
+        jump: null, // key of the highlighted time-jump button, if any
+        jumpTime: null, // timestamp that jump button points at
+        sweeping: false, // true only while a jump-button sweep is running: suppresses the daylight wash so it doesn't flash
+        red: false, // true while red-light (night-vision) mode is on: suppresses ALL haze in every path
+        selected: null // {kind, name}
+      };
+      var computed = []; // objects with positions for current time
+
+      var slider = document.getElementById("timeSlider");
+      var sliderMarks = document.getElementById("sliderMarks");
+      var dateInput = document.getElementById("dateInput");
+      var dateDisplay = document.getElementById("dateDisplay");
+      var clockReadout = document.getElementById("clockReadout");
+      var objList = document.getElementById("objList");
+      var detailName = document.getElementById("detailName");
+      var detailConst = document.getElementById("detailConst");
+      var detailBody = document.getElementById("detailBody");
+      var tonightStrip = document.getElementById("tonightStrip");
+      var phaseIcon = document.getElementById("phaseIcon");
+      var dayNoteEl = document.getElementById("dayNote");
+
+      /* All clock times on this page are Los Angeles local time,
+         wherever the viewer happens to be. */
+      var LA_TZ = "America/Los_Angeles";
+      var laPartsFmt = new Intl.DateTimeFormat("en-US", { timeZone: LA_TZ, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" });
+      var laTimeFmt = new Intl.DateTimeFormat("en-US", { timeZone: LA_TZ, hour: "numeric", minute: "2-digit" });
+      var laWeekdayFmt = new Intl.DateTimeFormat("en-US", { timeZone: LA_TZ, weekday: "short" });
+      var laDateFmt = new Intl.DateTimeFormat("en-US", { timeZone: LA_TZ, month: "numeric", day: "numeric", year: "numeric" });
+      var laDateShortFmt = laDateFmt;
+      function laParts(date) {
+        var o = {};
+        laPartsFmt.formatToParts(date).forEach(function (p) { o[p.type] = p.value; });
+        return { y: +o.year, mo: +o.month, d: +o.day, h: (+o.hour) % 24, mi: +o.minute, s: +o.second };
+      }
+      function laToUtc(y, mo, d, h, mi) {
+        var guess = Date.UTC(y, mo - 1, d, h, mi, 0);
+        var p = laParts(new Date(guess));
+        var off = Date.UTC(p.y, p.mo - 1, p.d, p.h, p.mi, p.s) - guess;
+        var t = guess - off;
+        var p2 = laParts(new Date(t));
+        var off2 = Date.UTC(p2.y, p2.mo - 1, p2.d, p2.h, p2.mi, p2.s) - t;
+        if (off2 !== off) t = guess - off2;
+        return new Date(t);
+      }
+      function fmtTime(d) { return laTimeFmt.format(d); }
+      function fmtDate(d) { return laWeekdayFmt.format(d) + ", " + laDateFmt.format(d); }
+
+      /* Chinese lunar date (Build 32), e.g. 丙午年九月初四.
+         The conversion comes from Intl's Chinese calendar, but the
+         RENDERED strings are NOT trusted: engines disagree on them
+         (day comes back as a bare number "4" in some, a name in
+         others; month 11 as 十一月 vs 冬月). So only NUMBERS are
+         taken from Intl — via the en-US Chinese-calendar parts,
+         where a leap month's month part reads "6bis" — plus the
+         cyclical yearName from the zh parts, and the canonical
+         Chinese names are rendered here from fixed tables. The
+         ganzhi falls back to the standard (year − 4) mod 60 cycle
+         computed from relatedYear if yearName is ever absent.
+         Verified against anchors: 2026-02-17 = 丙午年正月初一
+         (Chinese New Year), 2026-09-25 = 八月十五 (Mid-Autumn),
+         2025-07-25 = 闰六月初一 (2025's leap 6th month).
+         The result is cached per LA calendar day (lunarCacheKey),
+         so the per-tick updateReadouts calls cost one string
+         compare except on an actual date change. */
+      var lunarNumFmt = new Intl.DateTimeFormat("en-US-u-ca-chinese", { timeZone: LA_TZ, year: "numeric", month: "numeric", day: "numeric" });
+      var lunarNameFmt = new Intl.DateTimeFormat("zh-Hans-CN-u-ca-chinese", { timeZone: LA_TZ, year: "numeric", month: "long" });
+      var LUNAR_MONTH_NAMES = ["正月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "冬月", "腊月"];
+      var LUNAR_MONTH_BY_NAME = { "正月": 1, "二月": 2, "三月": 3, "四月": 4, "五月": 5, "六月": 6, "七月": 7, "八月": 8, "九月": 9, "十月": 10, "十一月": 11, "冬月": 11, "十二月": 12, "腊月": 12 };
+      var LUNAR_DIGITS = "一二三四五六七八九";
+      var LUNAR_STEMS = "甲乙丙丁戊己庚辛壬癸";
+      var LUNAR_BRANCHES = "子丑寅卯辰巳午未申酉戌亥";
+      function lunarDayName(d) {
+        if (d === 10) return "初十";
+        if (d === 20) return "二十";
+        if (d === 30) return "三十";
+        if (d < 10) return "初" + LUNAR_DIGITS.charAt(d - 1);
+        if (d < 20) return "十" + LUNAR_DIGITS.charAt(d - 11);
+        return "廿" + LUNAR_DIGITS.charAt(d - 21);
+      }
+      var lunarCacheKey = null;
+      var lunarCacheStr = "";
+      function lunarDateStr(date, lp) {
+        var key = lp.y + "-" + lp.mo + "-" + lp.d;
+        if (key === lunarCacheKey) return lunarCacheStr;
+        lunarCacheKey = key;
+        try {
+          var num = {}, nm = {};
+          lunarNumFmt.formatToParts(date).forEach(function (p) { num[p.type] = p.value; });
+          lunarNameFmt.formatToParts(date).forEach(function (p) { nm[p.type] = p.value; });
+          var relYear = parseInt(num.relatedYear, 10);
+          var monRaw = String(num.month || "");
+          var leap = monRaw.indexOf("bis") !== -1;
+          var mon = parseInt(monRaw, 10);
+          if (isNaN(mon) && nm.month) { // fallback: read the zh month name
+            var mName = String(nm.month);
+            if (mName.charAt(0) === "闰") { leap = true; mName = mName.slice(1); }
+            mon = LUNAR_MONTH_BY_NAME[mName] || NaN;
+          }
+          var day = parseInt(num.day, 10);
+          var gz = nm.yearName;
+          if (!gz && !isNaN(relYear)) {
+            var cyc = ((relYear - 4) % 60 + 60) % 60;
+            gz = LUNAR_STEMS.charAt(cyc % 10) + LUNAR_BRANCHES.charAt(cyc % 12);
+          }
+          lunarCacheStr = (gz && mon >= 1 && mon <= 12 && day >= 1 && day <= 30)
+            ? gz + "年" + (leap ? "闰" : "") + LUNAR_MONTH_NAMES[mon - 1] + lunarDayName(day)
+            : "";
+        } catch (e) { lunarCacheStr = ""; }
+        return lunarCacheStr;
+      }
+      function compass(az) {
+        var dirs = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+        return dirs[Math.round(az / 22.5) % 16];
+      }
+      function compassLong(az) {
+        var dirs = ["north","north-northeast","northeast","east-northeast","east","east-southeast","southeast","south-southeast","south","south-southwest","southwest","west-southwest","west","west-northwest","northwest","north-northwest"];
+        return dirs[Math.round(az / 22.5) % 16];
+      }
+      function altPhrase(alt) {
+        if (alt < 8) return "just above the horizon";
+        if (alt < 25) return "low in the sky";
+        if (alt < 50) return "well up";
+        if (alt < 75) return "high overhead";
+        return "nearly overhead";
+      }
+      function el(tag, attrs, parent) {
+        var n = document.createElementNS(NS, tag);
+        for (var k in attrs) n.setAttribute(k, attrs[k]);
+        if (parent) parent.appendChild(n);
+        return n;
+      }
+      function proj(alt, az) {
+        var r = R * (90 - alt) / 90;
+        var a = az * RAD;
+        return { x: CX - r * Math.sin(a), y: CY - r * Math.cos(a) };
+      }
+
+      var phaseIconSig = null;
+      function updatePhaseIcon(phArg) {
+        // drawSky passes the phase computeObjects already worked out
+        // for this exact moment, so the ephemeris isn't run twice.
+        var ph = phArg || moonPhase(state.date);
+        // The icon is a 46px indicator: its picture only changes when
+        // the phase name, the rounded illumination, the lit side, or
+        // the terminator width (bucketed to 0.05px — far below a
+        // device pixel at this size) changes. During Play / sweeps
+        // drawSky runs every tick, so skip the teardown + rebuild on
+        // the ticks where none of those moved.
+        var rotate0 = ph.elong > 180 ? 180 : 0;
+        var trxB = (ph.illum > 0.005 && ph.illum <= 0.995)
+          ? Math.round(Math.max(Math.abs(Math.cos(ph.elong * RAD)) * 20, 0.05) * 20) : -1;
+        var sig = ph.name + "|" + Math.round(ph.illum * 100) + "|" + rotate0 + "|" + trxB;
+        phaseIcon.classList.toggle("full-glow", Math.round(ph.illum * 100) >= 100);
+        if (sig === phaseIconSig) return;
+        phaseIconSig = sig;
+        phaseIcon.textContent = ""; // one-shot teardown, as in drawSky (Build 31)
+        var label = "Moon phase shown: " + ph.name + ", " + Math.round(ph.illum * 100) + "% illuminated";
+        phaseIcon.setAttribute("aria-label", label);
+        // Full-moon glow: only while the displayed moment's
+        // illumination reads 100% (the same rounded value the strip
+        // and detail panel show); any other phase gets no glow.
+        // The toggle itself sits above the signature check, so the
+        // glow still tracks date/time changes on every drawSky.
+        var title = el("title", {}, phaseIcon);
+        title.textContent = label;
+        var cx = 26, cy = 26, r = 20;
+        var rotate = ph.elong > 180 ? 180 : 0;
+        var g = el("g", { transform: "rotate(" + rotate + " " + cx + " " + cy + ")" }, phaseIcon);
+        el("circle", { cx: cx, cy: cy, r: r + 2.5, fill: "#f6f3e6", opacity: "0.07" }, g);
+        el("circle", { cx: cx, cy: cy, r: r, fill: "#182242", stroke: "#cfc7a8", "stroke-width": "1.4" }, g);
+        if (ph.illum > 0.995) {
+          el("circle", { cx: cx, cy: cy, r: r, fill: "#f6f3e6" }, g);
+        } else if (ph.illum > 0.005) {
+          var cosE = Math.cos(ph.elong * RAD);
+          var trx = Math.max(Math.abs(cosE) * r, 0.05);
+          var tSweep = cosE >= 0 ? 0 : 1;
+          var dPath = "M " + cx + " " + (cy - r) +
+            " A " + r + " " + r + " 0 0 1 " + cx + " " + (cy + r) +
+            " A " + trx.toFixed(2) + " " + r + " 0 0 " + tSweep + " " + cx + " " + (cy - r) + " Z";
+          el("path", { d: dPath, fill: "#f6f3e6" }, g);
+        }
+      }
+
+      function computeObjects(date) {
+        var jd = julian(date), lst = lstDeg(jd);
+        var objs = [];
+        STARS.forEach(function (s) {
+          var p = altAz(s[1], s[2], lst);
+          objs.push({ kind: "star", name: s[0], ra: s[1], dec: s[2], mag: s[3], const: s[4], sp: s[5], alt: p.alt, az: p.az });
+        });
+        var TC = (jd - 2451545.0) / 36525;
+        var earthXYZ = helioXYZ(EARTH_EL.el, EARTH_EL.rt, TC);
+        PLANETS.forEach(function (p) {
+          var rd = planetRaDec(p, TC, earthXYZ);
+          var pos = altAz(rd.ra, rd.dec, lst);
+          // constellation by rough lookup: nearest bright star's constellation is unreliable; use ecliptic-based sign region omitted
+          objs.push({ kind: "planet", name: p.name, ra: rd.ra, dec: rd.dec, mag: planetMag(p.name, rd.helio, rd.dist), const: "Planet", color: p.color, fact: p.fact, alt: pos.alt, az: pos.az });
+        });
+        var sn = sunRaDec(date), snp = altAz(sn.ra, sn.dec, lst);
+        var m = moonRaDec(date), mp = altAz(m.ra, m.dec, lst);
+        // Phase from the two longitudes just computed — calling
+        // moonPhase(date) here used to re-run the Sun AND Moon
+        // ephemerides a second time on every frame (Build 31).
+        var ph = moonPhaseFromLons(sn.lon, m.lon);
+        objs.push({ kind: "moon", name: "Moon", ra: m.ra, dec: m.dec, mag: -12.0, const: ph.name + " · " + Math.round(ph.illum * 100) + "% lit", color: "#f4f1e4", phase: ph, alt: mp.alt, az: mp.az });
+        objs.push({ kind: "sun", name: "Sun", ra: sn.ra, dec: sn.dec, mag: -26.74, const: "Star", color: "#f0b64a", fact: "Our own star — a yellow dwarf whose light takes about 8 minutes 20 seconds to reach Earth. Never look at it directly.", alt: snp.alt, az: snp.az });
+        return { objs: objs, lst: lst };
+      }
+
+      /* Galactic -> equatorial (J2000) for the Milky Way band */
+      function galacticToRaDec(l, b) {
+        var lNGP = 122.9320, raNGP = 192.8595, decNGP = 27.1284;
+        var lR = (lNGP - l) * RAD, bR = b * RAD, dR = decNGP * RAD;
+        var sinDec = Math.sin(dR) * Math.sin(bR) + Math.cos(dR) * Math.cos(bR) * Math.cos(lR);
+        var dec = Math.asin(clamp(sinDec, -1, 1));
+        var y = Math.cos(bR) * Math.sin(lR);
+        var x = Math.cos(dR) * Math.sin(bR) - Math.sin(dR) * Math.cos(bR) * Math.cos(lR);
+        var ra = norm360(raNGP + Math.atan2(y, x) * DEG);
+        return { ra: ra / 15, dec: dec * DEG };
+      }
+
+      /* Frame-cost note (Build 24): drawSky tears down and rebuilds
+         the ENTIRE sky on every frame, and Play / jump sweeps call it
+         every 90ms tick — so per-frame DOM work directly sets how
+         smooth the rotation feels (ticks step per-tick with no
+         catch-up, so an over-budget frame is a visible stutter).
+         Profiling the tick path found the cost concentrated in node
+         count, not in any one visual effect: ~450–500 SVG nodes were
+         created and destroyed per frame, led by the constellation
+         lines (up to 118 <line> elements), the ecliptic (~60), and —
+         when enabled — the Milky Way band (~180 fat lines), plus a
+         full "Brightest" list rebuild and two layout-thrashing
+         fitOneLine passes riding along in the same call. The
+         Sun-centred daylight gradient (Build 22) is NOT the problem:
+         it is 9 nodes and its stops/centre math is a handful of
+         arithmetic ops per frame. Fixes applied, no feature removed
+         and no visual change: line layers now accumulate their
+         segments as subpaths of a single <path>; the list, the
+         tonight strip, the slider marks, the phase icon, and
+         fitOneLine all skip their rebuild when their inputs haven't
+         changed; and the Sun/Moon ephemeris results computeObjects
+         already produced are reused instead of recomputed.
+         Build 25 hunts further: the detail panel joins the memoised
+         set (it rebuilt its HTML on every frame while an object was
+         selected), and Play's step is subdivided (see the Play
+         constants below) so time advances in 2.5-sky-minute steps
+         twice as often at the same overall rate — up close, the
+         visible jaggedness was the 5-minute snap itself, not
+         dropped frames. What remains per frame is the irreducible
+         core: one full SVG rebuild of ~250–300 nodes, dominated by
+         the star circles (each star stays its own node because it
+         is individually coloured and tappable), the gradient defs,
+         and the ~150-object ephemeris in computeObjects.
+         Build 31 continues the hunt without touching visuals or
+         timing: the svg teardown is a single textContent clear
+         instead of ~300 removeChild calls; the twelve spokes are
+         one <path>; the gradient blend uses RGB triples parsed
+         once at load instead of 36 parseInts per frame; Earth's
+         heliocentric position and the Moon's phase are computed
+         once per frame instead of five and two times over;
+         syncJumpButtons and the daytime note use element
+         references cached at startup instead of 8 getElementById
+         calls per frame; updateReadouts formats the LA parts
+         once instead of twice and skips unchanged slider/date
+         writes; renderMarks derives its memo key from parts
+         already in hand. Remaining per frame: the star circles
+         themselves (~150 nodes — each is individually coloured
+         and tappable, so they stay separate nodes), the labels
+         when on, and one 156-object alt/az pass. A persistent
+         static layer (rings / spokes / cardinals / defs kept
+         across frames instead of rebuilt) would save roughly
+         another 25–35 node creations per frame but restructures
+         the draw order; it was NOT taken in this pass. */
+      function drawSky() {
+        // One-shot teardown: clearing textContent detaches all
+        // ~300 children in a single operation, where the old
+        // removeChild loop paid a DOM call per node per frame
+        // (Build 31). The chart's own click listener lives on the
+        // svg element itself, so nothing else is affected.
+        svg.textContent = "";
+        var date = state.date;
+        var res = computeObjects(date);
+        computed = res.objs;
+        var lst = res.lst;
+        var byName = {};
+        computed.forEach(function (o) { byName[o.name] = o; });
+
+        /* Daylight wash (restored): the dome's background follows the
+           Sun's altitude — a bright blue daytime wash through twilight
+           gradation to the dark night gradient — whenever the time is
+           shown statically, changed by Play, or changed by dragging
+           the slider / date controls. TWO EXCEPTIONS suppress it:
+           (1) while a jump-button sweep is running (state.sweeping),
+           the wash is suppressed and the dome keeps the uniform night
+           look, so crossing sunrise/sunset mid-sweep doesn't flash;
+           when the sweep lands, the final frame is drawn with sweeping
+           cleared, so the wash for the target time applies in one
+           settle. (2) While red-light mode is on (state.red), ALL haze
+           is removed in every path — static display, Play, slider drag,
+           date changes, and jump sweeps alike — so the dome keeps one
+           uniform red night look at every time of day; turning red
+           mode off resumes the normal rules above.
+           The wash's bright centre is NOT the middle of the dome: the
+           sky gradient is centred on the Sun's own plotted position
+           (see the gradient below), so the glow travels across the
+           dome with the Sun as the time changes. */
+        var noWash = state.sweeping || state.red;
+        // The Sun's alt/az for this exact moment is already in
+        // `computed` (computeObjects puts it there); reuse it rather
+        // than re-running the Sun ephemeris — drawSky used to call
+        // sunRaDec + altAz three extra times per frame, and drawSky
+        // runs on every Play / sweep tick.
+        var sunObj = byName["Sun"];
+        var washSunAlt = sunObj.alt;
+        var dayRaw = clamp((washSunAlt + 12) / 17, 0, 1);
+        var dayF = noWash ? 0 : dayRaw * dayRaw * (3 - 2 * dayRaw);
+        var twiF = noWash ? 0 : clamp(1 - Math.abs(washSunAlt + 1) / 7, 0, 1);
+        var defs = el("defs", {}, svg);
+        /* Sun-centred wash: the gradient's centre is the Sun's dome
+           position, with its altitude clamped at the horizon so near
+           sunrise/sunset (and through twilight) the glow sits low at
+           the Sun's rim position. The centre is blended from the dome
+           centre toward the Sun by dayF, so as the wash fades out at
+           night the gradient settles back to the plain centred night
+           gradient — and under the suppression rules (noWash forces
+           dayF to 0) the dome is the uniform centred night look, with
+           the target-time glow applied in one settle when a sweep
+           lands and dayF returns. Strength still follows Sun altitude
+           exactly as before via dayF and the stop colours below. */
+        var sunGlowPt = proj(Math.max(washSunAlt, 0), sunObj.az);
+        var gcx = CX + (sunGlowPt.x - CX) * dayF;
+        var gcy = CY + (sunGlowPt.y - CY) * dayF;
+        var grad = el("radialGradient", { id: "skyGrad", gradientUnits: "userSpaceOnUse", cx: gcx.toFixed(1), cy: gcy.toFixed(1), r: (R * 1.3).toFixed(1) }, defs);
+        el("stop", { offset: "0%", "stop-color": mixRGB(SKY_STOPS[0], dayF) }, grad);
+        el("stop", { offset: "55%", "stop-color": mixRGB(SKY_STOPS[1], dayF) }, grad);
+        el("stop", { offset: "100%", "stop-color": mixRGB(SKY_STOPS[2], dayF) }, grad);
+        var glow = el("radialGradient", { id: "horizonGlow", cx: "50%", cy: "50%", r: "50%" }, defs);
+        el("stop", { offset: "82%", "stop-color": "#ffb35c", "stop-opacity": "0" }, glow);
+        el("stop", { offset: "97%", "stop-color": "#ffb35c", "stop-opacity": (0.13 + twiF * 0.22 + dayF * 0.05).toFixed(3) }, glow);
+        el("stop", { offset: "100%", "stop-color": "#ffb35c", "stop-opacity": (0.02 + twiF * 0.06).toFixed(3) }, glow);
+
+        el("circle", { cx: CX, cy: CY, r: R + 14, fill: "var(--panel-2)" }, svg);
+        el("circle", { cx: CX, cy: CY, r: R, fill: "url(#skyGrad)" }, svg);
+        el("circle", { cx: CX, cy: CY, r: R, fill: "url(#horizonGlow)" }, svg);
+
+        // altitude rings (30 / 60 deg) and spokes
+        [30, 60].forEach(function (alt) {
+          var rr = R * (90 - alt) / 90;
+          el("circle", { cx: CX, cy: CY, r: rr, fill: "none", stroke: "#5f76ad", "stroke-opacity": "0.35", "stroke-width": "1", "stroke-dasharray": "3 5" }, svg);
+          var t = el("text", { x: CX + 4, y: CY - rr - 4, fill: "#8fa5cf", "font-size": "10" }, svg);
+          t.textContent = alt + "°";
+        });
+        // Spokes: one <path> of subpaths instead of 12 <line>
+        // nodes — same shared stroke, same geometry (Build 31,
+        // following the Build 24 line-layer conversions).
+        var dSpokes = "";
+        for (var a = 0; a < 360; a += 30) {
+          var p1 = proj(0, a), p2 = proj(88, a);
+          dSpokes += "M " + p1.x + " " + p1.y + " L " + p2.x + " " + p2.y + " ";
+        }
+        if (dSpokes) el("path", { d: dSpokes, fill: "none", stroke: "#5f76ad", "stroke-opacity": "0.16", "stroke-width": "1" }, svg);
+
+        // Milky Way band. Segments are accumulated as subpaths of
+        // TWO <path> elements (one per stroke style) instead of two
+        // <line> elements per segment: this layer alone used to add
+        // up to ~180 DOM nodes to every frame's teardown + rebuild,
+        // the heaviest single layer in the chart. A path subpath
+        // strokes exactly like the separate line did (same geometry,
+        // same round caps, same colour/opacity/width), so the band
+        // renders unchanged — it just costs two nodes per frame.
+        if (state.mw) {
+          var gMW = el("g", { "stroke-linecap": "round" }, svg);
+          var prev = null;
+          var dWide = "", dNarrow = "";
+          for (var l = 0; l <= 360; l += 4) {
+            var rd = galacticToRaDec(l % 360, 0);
+            var pos = altAz(rd.ra, rd.dec, lst);
+            if (pos.alt > -2) {
+              var pt = proj(Math.max(pos.alt, 0.5), pos.az);
+              if (prev && Math.hypot(pt.x - prev.x, pt.y - prev.y) < R * 0.9) {
+                var seg = "M " + prev.x + " " + prev.y + " L " + pt.x + " " + pt.y + " ";
+                dWide += seg;
+                dNarrow += seg;
+              }
+              prev = pt;
+            } else prev = null;
+          }
+          if (dWide) {
+            el("path", { d: dWide, fill: "none", stroke: "#dfe8ff", "stroke-opacity": "0.045", "stroke-width": R * 0.24 }, gMW);
+            el("path", { d: dNarrow, fill: "none", stroke: "#ffffff", "stroke-opacity": "0.05", "stroke-width": R * 0.11 }, gMW);
+          }
+        }
+
+        // Ecliptic (dashed gold) — segments accumulated as subpaths
+        // of ONE <path> (dash pattern restarts per subpath, exactly
+        // as it did per <line>), replacing up to ~60 line nodes per
+        // frame with a single node of identical rendering.
+        (function () {
+          var prev = null;
+          var dE = "";
+          for (var lam = 0; lam <= 360; lam += 6) {
+            var lamR = lam * RAD, eps = 23.439 * RAD;
+            var ra = norm360(Math.atan2(Math.cos(eps) * Math.sin(lamR), Math.cos(lamR)) * DEG) / 15;
+            var dec = Math.asin(Math.sin(eps) * Math.sin(lamR)) * DEG;
+            var pos = altAz(ra, dec, lst);
+            if (pos.alt > 0) {
+              var pt = proj(pos.alt, pos.az);
+              if (prev && Math.hypot(pt.x - prev.x, pt.y - prev.y) < R * 0.9) {
+                dE += "M " + prev.x + " " + prev.y + " L " + pt.x + " " + pt.y + " ";
+              }
+              prev = pt;
+            } else prev = null;
+          }
+          if (dE) el("path", { d: dE, fill: "none", stroke: "#e8c268", "stroke-opacity": "0.4", "stroke-width": "1", "stroke-dasharray": "4 4" }, svg);
+        })();
+
+        // Constellation lines — all segments (up to 118) accumulated
+        // as subpaths of ONE <path> inside the same group, instead
+        // of one <line> element per segment. All segments share the
+        // group's stroke colour/opacity/width, so compositing the
+        // subpaths renders pixel-identically to the separate lines
+        // while removing ~118 node creations from every frame —
+        // this group was the biggest per-frame DOM cost in the
+        // default view (see the frame-cost note above drawSky).
+        if (state.lines) {
+          var gL = el("g", { stroke: "#7d97c9", "stroke-opacity": "0.5", "stroke-width": "1.1" }, svg);
+          var dL = "";
+          LINES.forEach(function (chain) {
+            for (var i = 0; i + 1 < chain.length; i++) {
+              var A = byName[chain[i]], B = byName[chain[i + 1]];
+              if (!A || !B || A.alt <= 0 || B.alt <= 0) continue;
+              var pa = proj(A.alt, A.az), pb = proj(B.alt, B.az);
+              if (Math.hypot(pa.x - pb.x, pa.y - pb.y) > R * 1.05) continue;
+              dL += "M " + pa.x + " " + pa.y + " L " + pb.x + " " + pb.y + " ";
+            }
+          });
+          if (dL) el("path", { d: dL, fill: "none" }, gL);
+        }
+
+        // Stars & bodies
+        var gS = el("g", {}, svg);
+        // The Sun's projected spot (often below the rim) — the Moon's lit
+        // limb always faces it, which orients the phase drawing.
+        // Reuses computeObjects' Sun entry (sunObj, above).
+        var sunPt = proj(sunObj.alt, sunObj.az);
+        var sorted = computed.slice().sort(function (a, b) { return b.mag - a.mag; }); // faintest first
+        sorted.forEach(function (o) {
+          if (o.alt <= 0) return;
+          if (o.kind === "star" && o.mag > 4.6) return;
+          var pt = proj(o.alt, o.az);
+          var isSel = state.selected && state.selected.name === o.name;
+          if (o.kind === "moon") {
+            // Draw ONLY the illuminated part of the Moon: the actual
+            // crescent / gibbous shape for the current phase — the
+            // terminator curve plus the bright limb — with NO outline
+            // circle and NO dark disc behind it (the lit shape used to
+            // sit inside a full outlined disc, so a crescent read as
+            // a dark disc with a white rim). In a frame rotated so +x
+            // points at the Sun, the terminator is an ellipse of
+            // semi-axis r·cos(elong) and the lit region is the Sun
+            // side of it — one formula covers crescent, quarter, and
+            // gibbous, waxing and waning — and the group rotation
+            // keeps the bright limb facing the Sun. Near new moon the
+            // shape shrinks to nearly nothing, which is correct.
+            var mr = 9.5;
+            var mAng = Math.atan2(sunPt.y - pt.y, sunPt.x - pt.x) * DEG;
+            // Full moon (the displayed moment's illumination rounds
+            // to 100% — the same condition that lights the top phase
+            // icon's glow): the lit shape is a full disc and turns
+            // yellow/gold instead of the usual pale white. A
+            // drop-shadow halo here never rendered on the owner's iPhone,
+            // so the colour change is the signal on the dome; the top
+            // icon keeps its glow. Any other phase keeps the normal
+            // pale colouring. In Red mode the .redzone filter
+            // recolours this yellow like every other colour.
+            var moonFull = Math.round(o.phase.illum * 100) >= 100;
+            var moonLit = moonFull ? "#ffcf3f" : "#f6f3e6";
+            var gM = el("g", { transform: "rotate(" + mAng.toFixed(1) + " " + pt.x.toFixed(1) + " " + pt.y.toFixed(1) + ")", cursor: "pointer", "data-obj": "1" }, gS);
+            // Invisible hit disc: the Moon stays tappable over its
+            // full disc area even when the lit shape is a hair-thin
+            // crescent (or, near new moon, effectively absent).
+            el("circle", { cx: pt.x, cy: pt.y, r: mr + 2.5, fill: "#ffffff", opacity: "0" }, gM);
+            var cosE = Math.cos(o.phase.elong * RAD);
+            if (o.phase.illum > 0.995) {
+              el("circle", { cx: pt.x, cy: pt.y, r: mr, fill: moonLit }, gM);
+            } else if (o.phase.illum > 0.005) {
+              var trx = Math.max(Math.abs(cosE) * mr, 0.05);
+              var tSweep = cosE >= 0 ? 0 : 1;
+              var dPath = "M " + pt.x + " " + (pt.y - mr) +
+                " A " + mr + " " + mr + " 0 0 1 " + pt.x + " " + (pt.y + mr) +
+                " A " + trx.toFixed(2) + " " + mr + " 0 0 " + tSweep + " " + pt.x + " " + (pt.y - mr) + " Z";
+              el("path", { d: dPath, fill: moonLit }, gM);
+            }
+            gM.addEventListener("click", function () { selectObject(o); });
+            // The Moon belongs to the planet label group (Build 30):
+            // labelled whenever Labels OR Planets is on, in the
+            // label language like the planets.
+            if (state.labels || state.planets) label(pt, state.labelLang === "zh" ? (ZH_NAME[o.name] || o.name) : o.name, moonLit);
+          } else if (o.kind === "planet") {
+            el("circle", { cx: pt.x, cy: pt.y, r: 7, fill: "none", stroke: o.color, "stroke-opacity": "0.35", "stroke-width": "4" }, gS);
+            var pc = el("circle", { cx: pt.x, cy: pt.y, r: 4.6, fill: o.color, stroke: "#0a1122", "stroke-width": "0.7", cursor: "pointer", "data-obj": "1" }, gS);
+            pc.addEventListener("click", function () { selectObject(o); });
+            if (state.labels || state.planets) label(pt, state.labelLang === "zh" ? (ZH_NAME[o.name] || o.name) : o.name, o.color);
+          } else if (o.kind !== "sun") {
+            // The Sun is not drawn here — it gets its own single hollow
+            // ring below. (Falling through to this star branch used to
+            // paint a white centre dot inside that ring.)
+            var r = clamp(3.4 - (o.mag + 1.5) * 0.62, 0.7, 3.6);
+            var col = SPCOLOR[o.sp] || "#ffffff";
+            if (o.mag < 1.2) el("circle", { cx: pt.x, cy: pt.y, r: r * 2.6, fill: col, opacity: "0.16" }, gS);
+            var sc = el("circle", { cx: pt.x, cy: pt.y, r: Math.max(r, 2.2), fill: col, cursor: "pointer", "data-obj": "1" }, gS);
+            sc.addEventListener("click", function () { selectObject(o); });
+            if (r > 2.2) { var core = el("circle", { cx: pt.x, cy: pt.y, r: r, fill: col, "pointer-events": "none" }, gS); }
+            if (state.labels && o.mag <= 2.5) label(pt, state.labelLang === "zh" ? (ZH_NAME[o.name] || o.name) : o.name, "#c9d6f2");
+          }
+          if (isSel) {
+            el("circle", { cx: pt.x, cy: pt.y, r: 13, fill: "none", stroke: "#f0b64a", "stroke-width": "2" }, gS);
+            // The Sun keeps a single ring even when selected — no faint outer ring.
+            if (o.kind !== "sun") el("circle", { cx: pt.x, cy: pt.y, r: 17, fill: "none", stroke: "#f0b64a", "stroke-opacity": "0.45", "stroke-width": "1" }, gS);
+          }
+        });
+
+        // Horizon rim + cardinals (labels sit just outside the rim, inside the frame)
+        el("circle", { cx: CX, cy: CY, r: R, fill: "none", stroke: "var(--sky-edge)", "stroke-width": "2" }, svg);
+        function rimPoint(az, rr) { var a = az * RAD; return { x: CX - rr * Math.sin(a), y: CY - rr * Math.cos(a) }; }
+        [["N", 0], ["E", 90], ["S", 180], ["W", 270]].forEach(function (c) {
+          var pt = rimPoint(c[1], R + 8);
+          var t = el("text", { x: pt.x, y: pt.y + 6, "text-anchor": "middle", fill: c[0] === "N" ? "#f0b64a" : "#aebedd", "font-size": "17", "font-weight": "700" }, svg);
+          t.textContent = c[0];
+        });
+        [["NE", 45], ["SE", 135], ["SW", 225], ["NW", 315]].forEach(function (c) {
+          var pt = rimPoint(c[1], R + 7);
+          var t = el("text", { x: pt.x, y: pt.y + 4, "text-anchor": "middle", fill: "#7e90b5", "font-size": "10.5", "font-weight": "600" }, svg);
+          t.textContent = c[0];
+        });
+        var zt = el("text", { x: CX, y: CY - 10, "text-anchor": "middle", fill: "#66799f", "font-size": "9.5", "letter-spacing": "0.14em" }, svg);
+        zt.textContent = "ZENITH · OVERHEAD";
+
+        function label(pt, text, fill) {
+          var flip = pt.x > CX + 30;
+          var t = el("text", { x: pt.x + (flip ? -8 : 8), y: pt.y - 6, "text-anchor": flip ? "end" : "start", fill: fill, "font-size": "11", "paint-order": "stroke", stroke: "#060a18", "stroke-width": "3", "stroke-opacity": "0.65" }, svg);
+          t.textContent = text;
+        }
+
+        // The daylight wash is applied in the gradient above (and is
+        // suppressed during a jump sweep or while red mode is on — see
+        // there). The daytime note still flags when the shown sky is
+        // hidden by sunlight.
+        // dayNoteEl is cached at startup — this used to be a
+        // getElementById lookup on every frame (Build 31).
+        // washSunAlt is the same Sun altitude read at the top of
+        // this function.
+        if (dayNoteEl) { dayNoteEl.hidden = !(washSunAlt > -0.5); }
+
+        // The Sun itself: ONE single hollow golden ring at its true
+        // position — empty centre, no outer halo ring. sunPt comes from
+        // the Sun's alt-az computed above for the Moon's phase
+        // orientation; only shown while the Sun is above the rim.
+        if (washSunAlt > 0) {
+          el("circle", { cx: sunPt.x, cy: sunPt.y, r: 12, fill: "none", stroke: "#f0b64a", "stroke-width": "2.4", "pointer-events": "none" }, svg);
+          // The Sun belongs to the planet label group (Build 30):
+          // labelled whenever Labels OR Planets is on, in the
+          // label language like the planets.
+          if (state.labels || state.planets) label(sunPt, state.labelLang === "zh" ? (ZH_NAME["Sun"] || "Sun") : "Sun", "#f0d489");
+        }
+
+        updatePhaseIcon(byName["Moon"].phase);
+        updateReadouts();
+        updateList();
+        if (state.selected) {
+          var sel = byName[state.selected.name];
+          if (sel) renderDetail(sel); else clearDetail();
+        }
+      }
+
+      function fitOneLine(elm, baseRem) {
+        // Shrink the font just enough that the text stays on one line.
+        // Memoised: updateReadouts calls this on EVERY drawSky — i.e.
+        // every Play / sweep tick — and each uncached call forces
+        // synchronous layout reads (clientWidth / scrollWidth) after
+        // the whole sky SVG has just been rebuilt, which made the
+        // animation ticks jank. The fitted size depends only on the
+        // base size, the available width, and the text's length, so
+        // when those are unchanged since the last fit the size is
+        // already correct and the layout reads are skipped outright.
+        var size = baseRem;
+        var parent = elm.parentElement;
+        var avail = parent ? parent.clientWidth : elm.clientWidth;
+        var fitKey = baseRem + "|" + avail + "|" + elm.textContent.length;
+        if (elm._fitKey === fitKey) return;
+        elm._fitKey = fitKey;
+        elm.style.fontSize = size + "rem";
+        var guard = 0;
+        while (elm.scrollWidth > avail && size > 0.5 && guard < 24) {
+          size -= 0.04;
+          elm.style.fontSize = size.toFixed(2) + "rem";
+          guard++;
+        }
+      }
+      /* Readout redraw throttling (Build 26, reworked in
+         Build 31): while time is in motion — Play running, a jump
+         sweep running, or the slider being dragged — the readout
+         TEXT line (the clock line; Build 27 removed the sidereal
+         line that used to sit under it, so this single line is
+         the whole readout now) is not rewritten on every tick,
+         but the granularity now splits by path:
+         · DRAG and PLAY rewrite the text whenever the displayed
+           MINUTE changes. During a drag the timestamp must step
+           minute by minute under the thumb — under the hour-only
+           rule the digits sat frozen for up to an hour of slider
+           travel and then jumped, and the exact-minute jump-button
+           highlight (evaluated in setDate on the same per-minute
+           input events) looked broken because the time it tracks
+           never visibly moved. Play gets the same per-minute rule:
+           the cost is one text-node write on the ticks where the
+           minute actually rolls — Play steps 2.5 sky-minutes per
+           45 ms tick, so most ticks — plus a fitOneLine call that
+           is memoised on (base size, available width, text
+           length) and so usually returns before any layout read;
+           both are trivial next to the ~300-node sky rebuild in
+           the same tick.
+         · A jump SWEEP keeps the Build 26 hour-only rule — its
+           button lights its target for the whole transit rather
+           than tracking minutes, so minute digits would only
+           churn.
+         The moment motion stops, the exact full time is written
+         again: every non-motion call writes unconditionally, and
+         the stop paths (pause, drag release, sweep landing, jump
+         landing, date change) all funnel into such a call; any
+         button press also invalidates both cached keys so the
+         next draw writes exactly. The slider position and the
+         date fields below are cheap property sets guarded by
+         change, and still update on every call so the thumb
+         keeps travelling during motion. */
+      var readoutHourKey = null;
+      var readoutMinuteKey = null;
+      var dragActive = false; // true between slider pointerdown and release
+      function readoutsThrottled() { return state.playing || state.sweeping || dragActive; }
+      function updateReadouts() {
+        var lp = laParts(state.date);
+        // Lunar date for the LA calendar day (Build 32): cached per
+        // day inside lunarDateStr, so this is a compare on most calls.
+        var lunar = lunarDateStr(state.date, lp);
+        var hourKey = lp.y + "-" + lp.mo + "-" + lp.d + " " + lp.h + "|" + (state.eventLabel || "");
+        var minuteKey = hourKey + ":" + lp.mi;
+        var writeText;
+        if (!readoutsThrottled()) writeText = true; // at rest: always the exact time
+        else if (state.sweeping) writeText = hourKey !== readoutHourKey; // sweeps: hour-only (Build 26)
+        else writeText = minuteKey !== readoutMinuteKey; // drag / Play: every minute (Build 31)
+        if (writeText) {
+          readoutHourKey = hourKey;
+          readoutMinuteKey = minuteKey;
+          // Order (Build 32): Gregorian date, then the Chinese
+          // lunar date, then the time LAST; the jump keyword suffix
+          // still follows the time.
+          var readSegs = [fmtDate(state.date)];
+          if (lunar) readSegs.push(lunar);
+          readSegs.push(fmtTime(state.date));
+          clockReadout.textContent = readSegs.join(" · ") + (state.eventLabel ? " — " + state.eventLabel : "");
+          var vw = Math.min(window.innerWidth || 1024, 1180);
+          fitOneLine(clockReadout, Math.max(0.76, Math.min(1.02, vw * 0.038 / 16)));
+        }
+        var sv = lp.h * 60 + lp.mi;
+        if (Number(slider.value) !== sv) slider.value = sv;
+        var dv = lp.y + "-" + String(lp.mo).padStart(2, "0") + "-" + String(lp.d).padStart(2, "0");
+        if (dateInput.value !== dv) dateInput.value = dv;
+        if (dateDisplay) {
+          var ds = laDateShortFmt.format(state.date);
+          if (dateDisplay.textContent !== ds) dateDisplay.textContent = ds;
+        }
+      }
+
+      var listSig = null;
+      function updateList() {
+        var vis = computed.filter(function (o) { return o.alt > 1.5 && (o.kind !== "star" || o.mag <= 3.4); })
+          .sort(function (a, b) { return a.mag - b.mag; }).slice(0, 10);
+        // Skip the rebuild when nothing the rows actually show has
+        // changed: the row content is name, kind, colour, compass
+        // point, WHOLE-degree altitude, and the selection ring — all
+        // captured in this signature. updateList runs on every
+        // drawSky (every Play / sweep tick), and rebuilding ten
+        // buttons with listeners per tick was pure churn on the
+        // ticks where the rounded values hadn't moved.
+        var sig = vis.map(function (o) {
+          return o.name + "|" + Math.round(o.alt) + "|" + compass(o.az) + "|" + o.mag.toFixed(1) + "|" +
+            (state.selected && state.selected.name === o.name ? "1" : "0");
+        }).join(";");
+        if (sig === listSig) return;
+        listSig = sig;
+        objList.innerHTML = "";
+        if (!vis.length) {
+          var li = document.createElement("li");
+          li.style.cssText = "padding:10px 4px;color:var(--ink-soft);font-size:.92rem";
+          li.textContent = "Nothing bright is above the horizon at this time — try sliding toward evening.";
+          objList.appendChild(li);
+          return;
+        }
+        vis.forEach(function (o) {
+          var li = document.createElement("li");
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "obj-row" + (state.selected && state.selected.name === o.name ? " selected" : "");
+          var dot = document.createElement("span");
+          dot.className = "obj-dot";
+          dot.style.background = o.kind === "star" ? (SPCOLOR[o.sp] || "#fff") : o.color;
+          dot.style.boxShadow = "0 0 6px " + dot.style.background;
+          var nm = document.createElement("span");
+          nm.className = "obj-name"; nm.textContent = o.name;
+          var kind = document.createElement("span");
+          kind.className = "obj-kind";
+          kind.textContent = o.kind === "star" ? o.const : (o.kind === "moon" ? "Moon" : (o.kind === "sun" ? "Sun" : "Planet"));
+          var wh = document.createElement("span");
+          wh.className = "obj-where";
+          wh.textContent = compass(o.az) + " · " + Math.round(o.alt) + "° up · mag " + (o.kind === "moon" ? "—" : o.mag.toFixed(1));
+          btn.appendChild(dot); btn.appendChild(nm); btn.appendChild(kind); btn.appendChild(wh);
+          btn.addEventListener("click", function () { selectObject(o); });
+          li.appendChild(btn);
+          objList.appendChild(li);
+        });
+      }
+
+      function selectObject(o) {
+        state.selected = { name: o.name };
+        drawSky();
+      }
+      function clearDetail() {
+        state.selected = null;
+        detailSig = null;
+        detailName.textContent = "Pick a star";
+        detailConst.textContent = "Details";
+        detailBody.innerHTML = '<p class="empty">Tap or click any point of light on the chart — or any row in the list — and its name, brightness, and where to look will appear here.</p>';
+      }
+      /* ----- Wikipedia links + in-page article pop-up -----
+         The English name in the detail heading links to the English
+         Wikipedia, the Chinese name to the Chinese Wikipedia, and the
+         constellation in the sub-line gets the same treatment.
+         Clicking a name never navigates away: the article opens in
+         an overlay pop-up (iframe) with a ✕ close button and an
+         "open in new tab" fallback for pages that refuse to embed.
+         Closing restores the map untouched — no time, slider, or
+         selection state changes while the pop-up is open.
+         WIKI_EN / WIKI_ZH hold the exact article title where the
+         plain name is ambiguous (e.g. Mercury the planet); names in
+         WIKI_SEARCH have no certain article title, so they link to
+         that Wikipedia's search instead of a guessed article. */
+      var WIKI_EN = { "Mercury": "Mercury (planet)", "Wei": "Epsilon Scorpii", "Kraz": "Beta Corvi", "Gienah": "Epsilon Cygni", "Gienah Corvi": "Gamma Corvi", "Dschubba": "Delta Scorpii", "Acrab": "Beta Scorpii", "Lesath": "Upsilon Scorpii" };
+      var WIKI_ZH = { "Moon": "月球" };
+      var WIKI_SEARCH = { "Rotanev": 1, "Sualocin": 1, "Baham": 1, "Alnasl": 1, "Segin": 1, "Cursa": 1, "Nihal": 1, "Kaus Media": 1, "Kaus Borealis": 1, "Eta Herculis": 1 };
+      function wikiArticleUrl(lang, title) {
+        return "https://" + lang + ".wikipedia.org/wiki/" + encodeURIComponent(title.replace(/ /g, "_"));
+      }
+      function wikiSearchUrl(lang, query) {
+        return "https://" + lang + ".wikipedia.org/wiki/Special:Search?search=" + encodeURIComponent(query);
+      }
+      function wikiLink(url, text) {
+        return '<a class="wiki-link" href="' + url + '" target="_blank" rel="noopener">' + text + "</a>";
+      }
+      function enWikiLink(name, text) {
+        if (WIKI_SEARCH[name]) return wikiLink(wikiSearchUrl("en", name + " star"), text);
+        return wikiLink(wikiArticleUrl("en", WIKI_EN[name] || name), text);
+      }
+      function zhWikiLink(enName, zhText) {
+        if (WIKI_SEARCH[enName]) return wikiLink(wikiSearchUrl("zh", zhText), zhText);
+        return wikiLink(wikiArticleUrl("zh", WIKI_ZH[enName] || zhText), zhText);
+      }
+      var wikiOverlay = document.getElementById("wikiOverlay");
+      var wikiFrame = document.getElementById("wikiFrame");
+      var wikiTitle = document.getElementById("wikiTitle");
+      var wikiOpen = document.getElementById("wikiOpen");
+      var wikiLastFocus = null;
+      function openWiki(url, label) {
+        wikiLastFocus = document.activeElement;
+        wikiTitle.textContent = label + " — Wikipedia";
+        wikiOpen.setAttribute("href", url);
+        wikiFrame.setAttribute("src", url);
+        wikiOverlay.hidden = false;
+        document.getElementById("wikiClose").focus();
+      }
+      function closeWiki() {
+        wikiOverlay.hidden = true;
+        wikiFrame.setAttribute("src", "about:blank");
+        if (wikiLastFocus && wikiLastFocus.focus) wikiLastFocus.focus();
+        wikiLastFocus = null;
+      }
+      document.getElementById("wikiClose").addEventListener("click", closeWiki);
+      wikiOverlay.addEventListener("click", function (e) { if (e.target === wikiOverlay) closeWiki(); });
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && !wikiOverlay.hidden) closeWiki();
+      });
+      function wikiNameClick(e) {
+        var a = e.target && e.target.closest ? e.target.closest("a.wiki-link") : null;
+        if (!a) return;
+        e.preventDefault();
+        openWiki(a.getAttribute("href"), a.textContent);
+      }
+      detailName.addEventListener("click", wikiNameClick);
+      detailConst.addEventListener("click", wikiNameClick);
+
+      var detailSig = null;
+      function renderDetail(o) {
+        // Memoised like the list: drawSky calls this on every tick
+        // while an object is selected, and rebuilding the panel's
+        // HTML per tick was pure churn — the content depends only on
+        // the object's identity and its whole-degree alt/az, compass
+        // point, and mag/phase figures, all captured in this
+        // signature.
+        var sig = o.name + "|" + Math.round(o.alt) + "|" + Math.round(o.az) + "|" + compass(o.az) +
+          "|" + o.mag.toFixed(2) + "|" + (o.phase ? Math.round(o.phase.illum * 100) : "");
+        if (sig === detailSig) return;
+        detailSig = sig;
+        var zhName = ZH_NAME[o.name];
+        detailName.innerHTML = enWikiLink(o.name, o.name) + (zhName ? ' <span class="zh">· ' + zhWikiLink(o.name, zhName) + "</span>" : "");
+        if (o.kind === "star") {
+          var zhConst = ZH_CONST[o.const];
+          detailConst.innerHTML = "Star in " + enWikiLink(o.const, o.const) + (zhConst ? " · " + zhWikiLink(o.const, zhConst) : "");
+        }
+        else if (o.kind === "planet") detailConst.textContent = "Planet · solar system";
+        else if (o.kind === "sun") detailConst.textContent = "Our star · center of the solar system";
+        else detailConst.textContent = "The Moon · " + o.phase.name + (ZH_PHASE[o.phase.name] ? " " + ZH_PHASE[o.phase.name] : "") + " · " + Math.round(o.phase.illum * 100) + "% lit";
+        var rows = "";
+        if (o.kind !== "moon") rows += "<dt>Brightness</dt><dd>Magnitude " + o.mag.toFixed(2) + "</dd>";
+        if (o.kind === "star") rows += "<dt>Spectral type</dt><dd>" + o.sp + " — " + ({ O: "blue, extremely hot", B: "blue-white", A: "white", F: "yellow-white", G: "yellow, like the Sun", K: "orange", M: "red, cool" }[o.sp] || "") + "</dd>";
+        if (o.kind === "moon") rows += "<dt>Phase</dt><dd>" + o.phase.name + (ZH_PHASE[o.phase.name] ? " · " + ZH_PHASE[o.phase.name] : "") + ", " + Math.round(o.phase.illum * 100) + "% illuminated</dd>";
+        rows += "<dt>Altitude</dt><dd>" + (o.alt < 0 ? "Below the horizon right now" : Math.round(o.alt) + "° above the horizon") + "</dd>";
+        rows += "<dt>Direction</dt><dd>" + compass(o.az) + " (" + Math.round(o.az) + "° azimuth)</dd>";
+        rows += "<dt>Where to look</dt><dd style='font-weight:500'>" + (o.alt < 0 ? "It isn't up at this time — slide the time forward to find when it rises." : altPhrase(o.alt) + ", toward the " + compassLong(o.az) + ".") + "</dd>";
+        var fact = o.fact || FACTS[o.name] || "";
+        detailBody.innerHTML = "<dl>" + rows + "</dl>" + (fact ? '<p class="fact">' + fact + "</p>" : "");
+      }
+
+      /* -------- Tonight strip: sunset / darkness / moon -------- */
+      function sunAltAt(date) {
+        var s = sunRaDec(date);
+        return altAz(s.ra, s.dec, lstDeg(julian(date))).alt;
+      }
+      function findCrossing(day, targetAlt, rising) {
+        // scan the Los Angeles day in 2-minute steps for the sun crossing targetAlt
+        var lp = laParts(day);
+        var start = laToUtc(lp.y, lp.mo, lp.d, 0, 0);
+        var prevT = start, prevA = sunAltAt(start);
+        for (var m = 2; m <= 1440; m += 2) {
+          var t = new Date(start.getTime() + m * 60000);
+          var a = sunAltAt(t);
+          if (rising ? (prevA < targetAlt && a >= targetAlt) : (prevA > targetAlt && a <= targetAlt)) {
+            var f = (targetAlt - prevA) / (a - prevA);
+            return new Date(prevT.getTime() + f * (t - prevT));
+          }
+          prevT = t; prevA = a;
+        }
+        return null;
+      }
+      function moonAltAt(date) {
+        var m = moonRaDec(date);
+        return altAz(m.ra, m.dec, lstDeg(julian(date))).alt;
+      }
+      function findMoonCrossing(day, rising) {
+        // Moonrise/moonset: the Moon's upper limb on the horizon works out to
+        // a geocentric center altitude of about +0.125° (refraction and the
+        // Moon's semidiameter vs. its parallax). Scan from the start of the
+        // Los Angeles day, up to 36h ahead — there's one moonrise and one
+        // moonset in every ~24.8h, but not always within a given calendar day.
+        var targetAlt = 0.125;
+        var lp = laParts(day);
+        var start = laToUtc(lp.y, lp.mo, lp.d, 0, 0);
+        var prevT = start, prevA = moonAltAt(start);
+        for (var m = 2; m <= 2160; m += 2) {
+          var t = new Date(start.getTime() + m * 60000);
+          var a = moonAltAt(t);
+          if (rising ? (prevA < targetAlt && a >= targetAlt) : (prevA > targetAlt && a <= targetAlt)) {
+            var f = (targetAlt - prevA) / (a - prevA);
+            return new Date(prevT.getTime() + f * (t - prevT));
+          }
+          prevT = t; prevA = a;
+        }
+        return null;
+      }
+      var stripDayKey = null;
+      function renderStrip() {
+        // Everything in the strip is a function of the DAY alone
+        // (sunrise / sunset / darkness crossings + the 9 PM moon
+        // phase), never of the time of day — memoise it by day.
+        // Without this, every slider-drag input event re-ran three
+        // findCrossing scans (~2,160 ephemeris evaluations) plus a
+        // DOM rebuild, a direct cause of drag / rotation jank.
+        var sKey = dayKey(state.date);
+        if (sKey === stripDayKey) return;
+        stripDayKey = sKey;
+        var day = state.date;
+        var sunset = findCrossing(day, -0.583, false);
+        var dark = findCrossing(day, -18, false);
+        var sunrise = findCrossing(day, -0.583, true);
+        var dlp = laParts(day);
+        var ph = moonPhase(laToUtc(dlp.y, dlp.mo, dlp.d, 21, 0));
+        var items = [];
+        if (sunrise) items.push(["Sunrise", fmtTime(sunrise)]);
+        if (sunset) items.push(["Sunset", fmtTime(sunset)]);
+        if (dark) items.push(["Fully dark by", fmtTime(dark)]);
+        items.push(["Moon", ph.name + " · " + Math.round(ph.illum * 100) + "% lit"]);
+        tonightStrip.innerHTML = "";
+        items.forEach(function (it) {
+          var d = document.createElement("div");
+          d.className = "stat";
+          d.innerHTML = '<span class="k"></span><span class="v"></span>';
+          d.querySelector(".k").textContent = it[0];
+          d.querySelector(".v").textContent = it[1];
+          tonightStrip.appendChild(d);
+        });
+      }
+
+      /* ----- Timeline markers: one tick per jump-button event -----
+         Events for the displayed Los Angeles day, cached per day.
+         Each entry: { key (matches JUMP_BTNS), time (ms), minutes
+         into the day } so the slider can draw a tick at its position. */
+      var eventsCache = { key: null, list: null };
+      function dayKey(d) { var lp = laParts(d); return lp.y + "-" + lp.mo + "-" + lp.d; }
+      function dayEvents(d) {
+        var key = dayKey(d);
+        if (eventsCache.key === key) return eventsCache.list;
+        var list = [];
+        function add(k, date) {
+          if (!date) return;
+          var lp = laParts(date);
+          if (lp.y + "-" + lp.mo + "-" + lp.d !== key) return; // falls on another day: no tick today
+          list.push({ key: k, time: date.getTime(), minutes: lp.h * 60 + lp.mi + lp.s / 60 });
+        }
+        add("sunrise", findCrossing(d, -0.583, true));
+        add("sunset", findCrossing(d, -0.583, false));
+        add("moonrise", findMoonCrossing(d, true));
+        add("moonset", findMoonCrossing(d, false));
+        add("dark", findCrossing(d, -18, false));
+        // Midnight: the jump button goes to 11:59 PM of this day, so
+        // its marker sits a hair left of the slider's right edge and
+        // the date never rolls over to the next day.
+        var lp0 = laParts(d);
+        var mid = laToUtc(lp0.y, lp0.mo, lp0.d, 23, 59);
+        list.push({ key: "midnight", time: mid.getTime(), minutes: 1439 });
+        list.sort(function (a, b) { return a.time - b.time; });
+        eventsCache = { key: key, list: list };
+        return list;
+      }
+      // Exact-centre-only matching: an event matches only when the
+      // displayed time sits exactly on that event's preset minute —
+      // the thumb's centre on the strip's centre pixel. Anywhere
+      // between strips matches nothing, so no jump button lights,
+      // and stepping one minute (or one Play tick) past a strip
+      // turns its button off again immediately. This is the rule
+      // for touch/drag outright, and for Play's landing ticks; Play
+      // additionally lights a button briefly when a step CROSSES
+      // an event's minute without landing on it (see PLAY_GLOW_MS
+      // and the glow branch in setDate).
+      function exactEventAt(d) {
+        var lp = laParts(d);
+        var mins = lp.h * 60 + lp.mi, found = null;
+        dayEvents(d).forEach(function (e) { if (Math.floor(e.minutes) === mins) found = e; });
+        return found;
+      }
+      var marksSig = null;
+      function renderMarks() {
+        if (!sliderMarks) return;
+        // The marks depend only on the displayed day's events plus
+        // the Now strip's minute (today only). setDate calls this
+        // on every Play / sweep tick, so skip the teardown + rebuild
+        // on ticks where neither has changed.
+        var now0 = new Date();
+        var lpN = laParts(now0);
+        // Both day keys derive from parts already in hand — this
+        // used to call dayKey (a full Intl formatToParts) three
+        // more times on every setDate, before the memo check
+        // could even run (Build 31).
+        var todayKey = lpN.y + "-" + lpN.mo + "-" + lpN.d;
+        var stateKey = dayKey(state.date);
+        var isToday = todayKey === stateKey;
+        var mSig = stateKey + "|" + (isToday ? (lpN.h * 60 + lpN.mi) : "-");
+        if (mSig === marksSig) return;
+        marksSig = mSig;
+        sliderMarks.innerHTML = "";
+        function tick(cls, minutes) {
+          var frac = clamp(minutes, 0, 1439) / 1439;
+          var s = document.createElement("span");
+          s.className = "slider-mark" + (cls ? " " + cls : "");
+          // The span matches the black bar exactly (and the thumb's
+          // travel): 16px in from each end of the wrap (half the
+          // 32px thumb). Minute 0 sits at the bar's left edge,
+          // minute 1439 at its right edge, and a strip sits where
+          // the thumb centre is at that time.
+          s.style.left = "calc(16px + (100% - 32px) * " + frac.toFixed(4) + ")";
+          sliderMarks.appendChild(s);
+        }
+        // Event strips never highlight: no active class in any path
+        // (jump click, Play, or drag) — only the jump BUTTONS light.
+        // Each strip carries its event's class so it renders in that
+        // event's colour, matching its jump button's icon.
+        dayEvents(state.date).forEach(function (e) {
+          tick("ev-" + e.key, e.minutes);
+        });
+        if (isToday) {
+          tick("now-mark", lpN.h * 60 + lpN.mi + lpN.s / 60);
+        }
+      }
+
+      /* ---------------- Controls ---------------- */
+      var JUMP_BTNS = {
+        sunrise: "sunriseBtn", sunset: "sunsetBtn", moonrise: "moonriseBtn",
+        now: "nowBtn", moonset: "moonsetBtn", dark: "darkBtn", midnight: "midnightBtn"
+      };
+      // Button elements resolved ONCE: syncJumpButtons runs on
+      // every setDate — i.e. every Play / sweep / drag tick — and
+      // used to pay seven getElementById lookups per call (Build 31).
+      var JUMP_BTN_ELS = {};
+      Object.keys(JUMP_BTNS).forEach(function (key) { JUMP_BTN_ELS[key] = document.getElementById(JUMP_BTNS[key]); });
+      function syncJumpButtons() {
+        Object.keys(JUMP_BTN_ELS).forEach(function (key) {
+          var b = JUMP_BTN_ELS[key];
+          if (b) b.setAttribute("aria-pressed", state.jump === key ? "true" : "false");
+        });
+      }
+      // Any button press forces the next readout write to be the
+      // exact full time, even mid-Play / mid-sweep (see the
+      // throttling note at updateReadouts). Capture phase, so the
+      // key is cleared before the button's own handler redraws.
+      document.addEventListener("click", function (e) {
+        if (e.target && e.target.closest && e.target.closest("button")) { readoutHourKey = null; readoutMinuteKey = null; }
+      }, true);
+      function setDate(d, keepLive, jumpKey, light, dateChange, exactOnly) {
+        if (jumpKey) {
+          // A jump button was tapped: it owns the highlight from the
+          // tap until the displayed time moves off its event's minute
+          // by some other path (Play, drag, date change).
+          state.jump = jumpKey;
+          state.jumpTime = d.getTime();
+        } else if (dateChange) {
+          // The date changed via the date field/picker or the ◀ ▶
+          // day-shift arrows: no jump button may be lit afterwards.
+          // Any existing highlight clears, and the marker pass-through
+          // below does NOT run — even if the unchanged time of day
+          // sits past a tick on the new date, a date change never
+          // lights a button. Pass-through highlighting stays only
+          // for Play and slider drags.
+          state.jump = null;
+          state.jumpTime = null;
+        } else if (state.jump === "now" && keepLive && state.live) {
+          // Live mode: the view still tracks "now", so Now keeps its
+          // highlight and its moment rolls forward with the clock.
+          state.jumpTime = d.getTime();
+        } else if (!(keepLive && state.live)) {
+          // The displayed time moved without a jump button (slider
+          // drag or Play — date changes take the branch above and
+          // never light a button). One rule for both paths now:
+          // exact-centre-only. A jump button lights ONLY while the
+          // displayed time sits exactly on that event's preset minute
+          // (the thumb's centre on the strip's centre); the moment
+          // playback or the drag steps past it — even by one tick —
+          // the button turns off again, and anywhere between strips
+          // nothing is lit. There is no "most recent marker stays
+          // lit" persistence in any path. (The exactOnly argument is
+          // kept for the drag call site's clarity; both paths take
+          // this same branch.) PLAY-ONLY EXCEPTION: while Play is
+          // running, a step that CROSSES an event's minute lights
+          // that button for a short dwell (PLAY_GLOW_MS) even when
+          // no tick lands exactly on it — see the glow branch just
+          // below; the drag path never does this. Clicks that don't change the time
+          // never reach setDate, so the highlight still survives
+          // selecting stars/toggles. EXCEPTION: while a jump-button
+          // sweep is running (state.sweeping), the highlight stays on
+          // the button being jumped to — animateTo set it when the
+          // sweep started — and markers passed on the way do NOT
+          // light their buttons.
+          if (!state.sweeping) {
+            if (state.playing && playGlowKey && Date.now() < playGlowUntil) {
+              // Play crossing glow: a recent Play step crossed (or
+              // landed on) this event's minute, so its button stays
+              // lit for the glow dwell even though this tick's
+              // displayed minute is already past the strip. Once the
+              // dwell expires, the exact-only rule below resumes.
+              state.jump = playGlowKey;
+              state.jumpTime = playGlowTime;
+            } else {
+              var ev = exactEventAt(d);
+              state.jump = ev ? ev.key : null;
+              state.jumpTime = ev ? ev.time : null;
+            }
+          }
+        }
+        state.date = d;
+        if (!keepLive) state.live = false;
+        syncJumpButtons();
+        drawSky();
+        if (!light) renderStrip();
+        renderMarks();
+      }
+
+      /* ----- Animated jump: rotate the sky to the target moment -----
+         Instead of snapping, the displayed time sweeps continuously
+         from wherever it is now to the jump target, so the stars, Sun,
+         Moon and planets wheel across the dome and the slider thumb
+         travels with them. Intermediate frames go through setDate
+         without a jump key, but the golden highlight does NOT hand
+         off through timeline markers passed on the way: the tapped
+         button is highlighted from the moment the sweep starts and
+         stays the only highlighted button for the whole sweep,
+         landing still highlighted (setDate skips its marker-handoff
+         while a sweep is running). There is no pass-through
+         highlighting in any path: Play and slider drags are both
+         exact-centre-only, and date changes light nothing.
+         Tapping
+         another jump button retargets from the current mid-sweep
+         position; the slider, date controls and Play cancel the sweep. */
+      /* Play speed: Play advances the display by PLAY_STEP_MS of sky
+         time every PLAY_TICK_MS of real time — 2.5 sky-minutes every
+         45 ms, the SAME overall rate as the original 5 sky-minutes
+         every 90 ms (~55.6 sky-min/sec), subdivided into half-steps
+         twice as often (Build 25) so objects move in smaller snaps
+         and the rotation reads smoother up close. Still purely
+         interval-driven per-tick stepping — no
+         requestAnimationFrame (iOS history) and no catch-up steps,
+         so on a slow device Play slows down with its ticks.
+         The jump sweep does NOT follow Play's constants: it keeps
+         its own SWEEP_* values — 15 sky-minutes per 90 ms tick,
+         three times Play's overall rate (~167 sky-min/sec vs Play's
+         ~55.6) — so it rotates noticeably faster than Play while
+         still advancing purely per-tick with no wall-clock progress. */
+      var PLAY_STEP_MS = 2.5 * 60000; // 2.5 sky-minutes per tick
+      var PLAY_TICK_MS = 45;
+      /* Play crossing glow (Build 26): a 2.5-minute Play step often
+         steps OVER an event's exact minute without any tick landing
+         on it, and when a tick does land, the exact-only light
+         lasted a single 45 ms tick — together that made the button
+         glow look unreliable during Play. So the Play tick also
+         checks whether its step CROSSED an event's minute (event
+         minute in (previous, current] of the step): if so, that
+         event's button lights and stays lit for at least
+         PLAY_GLOW_MS, then goes off — visible, but never persisting
+         toward the next event. Drag keeps exact-only, jump taps
+         keep their target lighting, date changes light nothing. */
+      var PLAY_GLOW_MS = 150;
+      var playGlowKey = null, playGlowTime = null, playGlowUntil = 0, glowTimer = null;
+      var SWEEP_STEP_MS = 15 * 60000; // sweep: 15 sky-minutes per tick — three times Play's rate
+      var SWEEP_TICK_MS = 90; // sweep tick
+
+      var animId = null;
+      function cancelAnim() {
+        if (animId !== null) { clearInterval(animId); animId = null; }
+        // Cancelling a sweep (Play, slider drag, date change, retarget)
+        // ends the wash suppression: from this moment the dome's
+        // daylight wash follows the displayed time again.
+        state.sweeping = false;
+      }
+      function animateTo(target, jumpKey, onDone) {
+        cancelAnim();
+        var from = state.date.getTime();
+        var to = target.getTime();
+        if (Math.abs(to - from) < 60000) {
+          setDate(new Date(to), false, jumpKey);
+          if (onDone) onDone();
+          return;
+        }
+        // A real sweep is now running: suppress the daylight wash for
+        // its whole transit (uniform night dome, no day/night flash).
+        // The completion paths call cancelAnim() — clearing this flag —
+        // before their final setDate, so the wash for the target time
+        // applies exactly once, when the sweep lands.
+        state.sweeping = true;
+        // The tapped button takes the golden highlight right now and
+        // keeps it for the whole sweep: setDate's marker-handoff is
+        // suppressed while state.sweeping is set, so intermediate
+        // markers the rotation passes never light their buttons, and
+        // the final frame (setDate with jumpKey) confirms this same
+        // highlight on landing.
+        state.jump = jumpKey;
+        state.jumpTime = to;
+        syncJumpButtons();
+        renderMarks();
+        // The sweep runs at exactly THREE TIMES Play's overall rate: it
+        // ticks on its own fixed interval (SWEEP_TICK_MS = 90 ms)
+        // and each tick steps the displayed time by SWEEP_STEP_MS —
+        // 15 sky-minutes per tick — so the total duration is
+        // distance ÷ (3 × Play rate), forward or backward, with
+        // no fixed cap. Progress is purely per-tick: no wall-clock /
+        // Date.now math and no catch-up steps, so if redraw load
+        // delays ticks the sweep slows with them, exactly like Play. (An earlier
+        // version ticked every 16 ms off the wall clock; a full chart
+        // redraw per tick made that interval slip, and a stalled clock
+        // — as in the audit harness — froze it outright, while Play's
+        // per-tick stepping kept working in both places, including
+        // on the owner's iPhone where the rAF-driven sweep never moved.)
+        // With iOS Reduce Motion on, jumps used to skip the sweep
+        // and snap instantly, which also looked exactly like the
+        // rotation not working; reduced motion instead keeps a brief
+        // 300 ms eased glide on a 16 ms tick-counted interval.
+        var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (reduced) {
+          var ticks = 0;
+          animId = setInterval(function () {
+            ticks++;
+            var elapsed = ticks * 16;
+            var p = Math.min(elapsed / 300, 1);
+            if (p >= 1) {
+              cancelAnim();
+              setDate(new Date(to), false, jumpKey);
+              if (onDone) onDone();
+              return;
+            }
+            var e = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; // easeInOutCubic
+            setDate(new Date(from + (to - from) * e), false, null, true);
+          }, 16);
+          return;
+        }
+        var step = SWEEP_STEP_MS * Math.sign(to - from);
+        animId = setInterval(function () {
+          var cur = state.date.getTime();
+          if (Math.abs(to - cur) <= Math.abs(step)) {
+            cancelAnim();
+            setDate(new Date(to), false, jumpKey);
+            if (onDone) onDone();
+            return;
+          }
+          setDate(new Date(cur + step), false, null, true);
+        }, SWEEP_TICK_MS);
+      }
+
+      slider.addEventListener("input", function () {
+        cancelAnim();
+        var mins = parseInt(slider.value, 10);
+        var lp = laParts(state.date);
+        state.live = false; state.eventLabel = null; stopPlay();
+        // Touch/drag on the timeline: exact-only highlighting — a
+        // jump button lights only while the slider sits exactly on
+        // that event's dot, and goes out again the moment it moves
+        // off (final arg exactOnly=true). This also covers taps on
+        // the track that jump the thumb to a middle position.
+        setDate(laToUtc(lp.y, lp.mo, lp.d, Math.floor(mins / 60), mins % 60), false, null, false, false, true);
+      });
+      // Drag boundaries for the readout throttling: while the
+      // pointer is down on the slider the readout updates on
+      // every minute change (Build 31 — see updateReadouts); on
+      // release the exact full time is written at once.
+      // ('change' covers keyboard / non-pointer releases.)
+      slider.addEventListener("pointerdown", function () { dragActive = true; });
+      window.addEventListener("pointerup", function () {
+        if (!dragActive) return;
+        dragActive = false;
+        updateReadouts();
+      });
+      slider.addEventListener("change", function () {
+        if (!dragActive) return;
+        dragActive = false;
+        updateReadouts();
+      });
+      dateInput.addEventListener("change", function () {
+        if (!dateInput.value) return;
+        navBusy = true;
+        killPlayTimer(); // a date picked mid-Play stops Play first (Build 29)
+        cancelAnim();
+        var parts = dateInput.value.split("-");
+        var lp = laParts(state.date);
+        state.live = false; state.eventLabel = null; stopPlay();
+        setDate(laToUtc(parseInt(parts[0], 10), parseInt(parts[1], 10), parseInt(parts[2], 10), lp.h, lp.mi), false, null, false, true);
+        renderStrip();
+        navBusy = false;
+      });
+      // Touching the date field mid-Play stops Play on the spot
+      // (Build 29): otherwise every Play tick rewrites the field's
+      // value from the still-advancing displayed date, which can
+      // race the open native picker and clobber the pick before
+      // "change" ever fires. The pick itself then lands through
+      // the change handler above with Play already stopped.
+      dateInput.addEventListener("pointerdown", function () {
+        if (state.playing) { killPlayTimer(); stopPlay(); }
+      });
+      /* Jump dispatch (Build 28; tap delivery hardened in Build 29):
+         what a jump tap does splits on whether Play was running at
+         the moment of the tap — read BEFORE the timer is killed.
+         Play NOT running: the established behaviour, the rotating
+         sweep (animateTo). Play RUNNING: Play stops and the time is
+         set INSTANTLY to the event — no sweep, no rotation — via
+         the same setDate call a sweep landing makes, so the readout
+         writes the exact time + keyword and the target button
+         lights as a normal landing.
+
+         Build 29 — why row 1 STILL didn't stop Play on the phone
+         after Build 28: Build 28 changed only this dispatch logic;
+         the jump buttons themselves still listened for plain click,
+         while Play/Pause (Build 27) and the second row (Build 28)
+         had moved to reliableTap — the tap handled on touchend,
+         immediately, preventDefault suppressing the synthesized
+         click, a 700 ms guard swallowing any straggler. A desktop
+         click is always delivered, so Build 28 verified clean in
+         the probe; on the phone, under the 45 ms Play redraw, a
+         first-row tap's click could be lost exactly like the pause
+         and toggle taps before it. The jump buttons and the
+         day-shift arrows now go through reliableTap too (defined
+         below with the second row; function declarations hoist, so
+         it is callable here). Two further defences, so even a
+         partially delivered tap stops playback: each handler kills
+         the Play timer FIRST — before its target is even computed —
+         via killPlayTimer, and the Play tick itself refuses to
+         advance while navBusy says a jump/date interaction is
+         mid-flight. */
+      var navBusy = false;
+      function killPlayTimer() {
+        if (playTimer) { clearInterval(playTimer); playTimer = null; }
+        state.playing = false;
+      }
+      function jumpTo(target, key, label, wasPlaying) {
+        state.live = false; state.eventLabel = label; stopPlay();
+        if (wasPlaying) {
+          cancelAnim();
+          setDate(new Date(target.getTime()), false, key);
+        } else {
+          animateTo(target, key);
+        }
+      }
+      function jumpTap(key, label, compute) {
+        navBusy = true;
+        var wasPlaying = state.playing;
+        killPlayTimer(); // FIRST: playback is dead before anything else runs
+        var target = compute();
+        if (target) jumpTo(target, key, label, wasPlaying);
+        else stopPlay(); // no such event in range: still settle Play's button/glow
+        navBusy = false;
+      }
+      reliableTap(document.getElementById("nowBtn"), function () {
+        // A Now tap DURING Play also takes the instant path (Play
+        // stops, time snaps straight to the current moment, live
+        // tracking resumes) — the same instant set the cross-date
+        // rule below uses. wasPlaying is read, and the Play timer
+        // killed, before anything else runs (Build 29).
+        navBusy = true;
+        var wasPlaying = state.playing;
+        killPlayTimer();
+        state.eventLabel = "Now"; stopPlay();
+        var now = new Date();
+        if (wasPlaying || dayKey(now) !== dayKey(state.date)) {
+          // The displayed LA date is not today: snap straight to the
+          // current date and time in a single instant step — no
+          // rotating sweep across the date change — then resume live
+          // tracking with Now highlighted, exactly as a same-day Now
+          // landing leaves things.
+          cancelAnim();
+          state.live = true;
+          setDate(now, true, "now"); renderStrip();
+        } else if (Math.abs(now.getTime() - state.date.getTime()) < 60000) {
+          state.live = true;
+          setDate(now, true, "now"); renderStrip();
+        } else {
+          // Sweep to the current moment, then resume live tracking.
+          state.live = false;
+          animateTo(now, "now", function () { state.live = true; });
+        }
+        navBusy = false;
+      });
+      reliableTap(document.getElementById("sunriseBtn"), function () {
+        jumpTap("sunrise", "Sunrise", function () { return findCrossing(state.date, -0.583, true); });
+      });
+      reliableTap(document.getElementById("sunsetBtn"), function () {
+        jumpTap("sunset", "Sunset", function () { return findCrossing(state.date, -0.583, false); });
+      });
+      reliableTap(document.getElementById("darkBtn"), function () {
+        jumpTap("dark", "Fully Dark", function () { return findCrossing(state.date, -18, false); });
+      });
+      reliableTap(document.getElementById("midnightBtn"), function () {
+        jumpTap("midnight", "Midnight", function () {
+          var lp = laParts(state.date);
+          return laToUtc(lp.y, lp.mo, lp.d, 23, 59);
+        });
+      });
+      reliableTap(document.getElementById("moonriseBtn"), function () {
+        jumpTap("moonrise", "Moonrise", function () { return findMoonCrossing(state.date, true); });
+      });
+      reliableTap(document.getElementById("moonsetBtn"), function () {
+        jumpTap("moonset", "Moonset", function () { return findMoonCrossing(state.date, false); });
+      });
+      function shiftDay(delta) {
+        // A date shift stops Play (Build 29): the timer is killed
+        // FIRST, before the new date is computed or anything moves,
+        // and the arrows use reliableTap so the tap itself is
+        // delivered on the phone even mid-Play — they were plain
+        // click listeners, the same delivery gap as row 1. The
+        // setDate call keeps dateChange=true, so no jump button is
+        // lit on the new date (Build 19) and the time of day is
+        // preserved exactly.
+        navBusy = true;
+        killPlayTimer();
+        cancelAnim();
+        var lp = laParts(state.date);
+        var nx = new Date(Date.UTC(lp.y, lp.mo - 1, lp.d + delta));
+        state.live = false; state.eventLabel = null; stopPlay();
+        setDate(laToUtc(nx.getUTCFullYear(), nx.getUTCMonth() + 1, nx.getUTCDate(), lp.h, lp.mi), false, null, false, true);
+        navBusy = false;
+      }
+      reliableTap(document.getElementById("prevDayBtn"), function () { shiftDay(-1); });
+      reliableTap(document.getElementById("nextDayBtn"), function () { shiftDay(1); });
+      document.getElementById("explBtn").addEventListener("click", function () {
+        var on = document.body.classList.toggle("show-expl");
+        this.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+      var playTimer = null;
+      var playBtn = document.getElementById("playBtn");
+      var PLAY_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>';
+      var PAUSE_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h3.4v14H7zM13.6 5H17v14h-3.4z"/></svg>';
+      function scheduleGlowClear() {
+        // Safety net for the crossing glow: once the dwell has
+        // expired, if the glow's button is somehow still the lit
+        // one (e.g. Play was halted by a path that didn't redraw),
+        // settle the highlight back to the exact-only rule. While
+        // Play keeps ticking, setDate's expiry check handles this
+        // on its own and this timer simply finds nothing to do.
+        if (glowTimer) clearTimeout(glowTimer);
+        glowTimer = setTimeout(function () {
+          glowTimer = null;
+          if (state.sweeping || state.playing) { playGlowKey = null; playGlowTime = null; playGlowUntil = 0; return; }
+          if (playGlowKey && state.jump === playGlowKey) {
+            var ev = exactEventAt(state.date);
+            state.jump = ev ? ev.key : null;
+            state.jumpTime = ev ? ev.time : null;
+            syncJumpButtons();
+          }
+          playGlowKey = null; playGlowTime = null; playGlowUntil = 0;
+        }, PLAY_GLOW_MS + 60);
+      }
+      function stopPlay() {
+        if (playTimer) { clearInterval(playTimer); playTimer = null; }
+        state.playing = false;
+        // A crossing glow must not outlive Play: clear it and
+        // settle the highlight to the exact-only rule right now.
+        // (Callers that go on to a jump / drag / date change set
+        // the highlight themselves immediately after this.)
+        if (playGlowKey) {
+          playGlowKey = null; playGlowTime = null; playGlowUntil = 0;
+          if (glowTimer) { clearTimeout(glowTimer); glowTimer = null; }
+          if (!state.sweeping) {
+            var ev = exactEventAt(state.date);
+            state.jump = ev ? ev.key : null;
+            state.jumpTime = ev ? ev.time : null;
+            syncJumpButtons();
+          }
+        }
+        playBtn.setAttribute("aria-pressed", "false");
+        playBtn.setAttribute("aria-label", "Play");
+        playBtn.setAttribute("title", "Play");
+        playBtn.innerHTML = PLAY_SVG;
+      }
+      /* Play / Pause toggling (Build 27 — the pause fix). the owner
+         reported that during Play, tapping Pause did nothing: the
+         sky kept turning until he dragged the slider (whose input
+         handler stops Play on its own direct path). A clean mouse
+         click paused correctly, so the toggle logic itself was
+         sound — what failed on the phone was DELIVERY of the tap
+         as a single click while the 45 ms Play redraw had the main
+         thread saturated, with nothing defending the toggle against
+         a lost, doubled, or re-fired activation. Three defences,
+         no behaviour change otherwise:
+         (1) Taps are handled on touchend, immediately, and
+             preventDefault suppresses the synthesized click that
+             follows a tap, so one tap toggles exactly once; a
+             timestamp guard also swallows any click that still
+             slips through within 700 ms of a touch-handled toggle
+             (a second toggle would restart Play the instant Pause
+             stopped it — indistinguishable from "pause doesn't
+             work"). Mouse and keyboard activation still use click.
+         (2) Starting Play clears any pre-existing Play timer
+             first, so timers can never stack.
+         (3) Each tick checks it still belongs to THE live Play
+             timer; an orphaned interval (paused, or replaced by a
+             newer timer) clears itself and does nothing, so no
+             stray timer can keep the sky moving after Pause. */
+      var playTouchAt = 0;
+      function togglePlay() {
+        // A toggle press, like any button press, invalidates the
+        // throttled readout's cached keys so the exact time is
+        // written — touchend taps bypass the document click
+        // listener that normally does this.
+        readoutHourKey = null; readoutMinuteKey = null;
+        if (state.playing) {
+          stopPlay();
+          // Pausing ends the motion: write the exact full time now
+          // (during Play the readout tracked the minute only, and
+          // the keys nulled above force this write regardless).
+          updateReadouts();
+          return;
+        }
+        cancelAnim();
+        if (playTimer) { clearInterval(playTimer); playTimer = null; }
+        state.playing = true; state.live = false; state.eventLabel = null;
+        playBtn.setAttribute("aria-pressed", "true");
+        playBtn.setAttribute("aria-label", "Pause");
+        playBtn.setAttribute("title", "Pause");
+        playBtn.innerHTML = PAUSE_SVG;
+        var myTimer = setInterval(function () {
+          if (!state.playing || playTimer !== myTimer) { clearInterval(myTimer); return; }
+          // Defensive (Build 29): never advance time while a jump
+          // or date interaction is mid-flight — its handler has
+          // already killed this timer, so this is the second line
+          // of defence if a tick was somehow already queued.
+          if (navBusy) return;
+          // Play loops WITHIN the displayed day: advance the
+          // minute-of-day and wrap 1440 → 0 (11:59 PM back to
+          // 12:00 AM of the SAME date), so the date never changes
+          // during Play and the button glow stays inside the day's
+          // strips. Seconds ride along so the 2.5-minute steps stay
+          // exact from any starting time.
+          var lp = laParts(state.date);
+          var prevMins = lp.h * 60 + lp.mi + lp.s / 60;
+          var mins = prevMins + PLAY_STEP_MS / 60000;
+          if (mins >= 1440) mins -= 1440;
+          // Crossing pass (Play only): if this step's whole-minute
+          // span — minutes (previous, current], wrapping at
+          // midnight — contains an event's minute, light that
+          // event's button for the glow dwell, whether or not a
+          // tick lands exactly on it. setDate's glow branch keeps
+          // it lit until the dwell expires.
+          var prevWhole = Math.floor(prevMins), curWhole = Math.floor(mins);
+          var span = (curWhole - prevWhole + 1440) % 1440;
+          if (span > 0 && span < 720) {
+            var evs = dayEvents(state.date);
+            for (var k = 1; k <= span; k++) {
+              var m = (prevWhole + k) % 1440;
+              for (var j = 0; j < evs.length; j++) {
+                if (Math.floor(evs[j].minutes) === m) {
+                  playGlowKey = evs[j].key;
+                  playGlowTime = evs[j].time;
+                  playGlowUntil = Date.now() + PLAY_GLOW_MS;
+                  scheduleGlowClear();
+                }
+              }
+            }
+          }
+          var whole = Math.floor(mins);
+          var base = laToUtc(lp.y, lp.mo, lp.d, Math.floor(whole / 60), whole % 60);
+          setDate(new Date(base.getTime() + Math.round((mins - whole) * 60000)));
+        }, PLAY_TICK_MS);
+        playTimer = myTimer;
+      }
+      playBtn.addEventListener("click", function () {
+        if (Date.now() - playTouchAt < 700) return; // this tap was already handled on touchend
+        togglePlay();
+      });
+      playBtn.addEventListener("touchend", function (e) {
+        e.preventDefault(); // no synthesized click after this tap
+        playTouchAt = Date.now();
+        togglePlay();
+      }, { passive: false });
+      /* Reliable taps for the second control row (Build 28 — the
+         toggles-dead-during-Play regression). the owner reported the
+         language slider and the Labels / Planets / Constellations /
+         Milky Way / Red toggles stopped responding DURING Play,
+         though they worked while the sky was still. The state is
+         not the problem: nothing in the redraw path writes toggle
+         state — drawSky only reads it — and the handlers themselves
+         are unchanged from when they worked. What changed is the
+         load they compete with: these controls listened ONLY for
+         click, and under the 45 ms Play redraw the main thread is
+         saturated, so on the phone a tap's click can be lost
+         outright, or delivered in a way that toggles twice back to
+         the starting state — the same delivery failure the Build 27
+         pause fix diagnosed, which only hardened Play/Pause.
+         reliableTap extends those defences to a control: the tap is
+         handled on touchend, immediately, preventDefault suppresses
+         the synthesized click that follows, and a 700 ms timestamp
+         guard swallows any click that still slips through, so one
+         tap toggles exactly once. Mouse and keyboard activation
+         still use click. Play is never stopped or paused by this:
+         the handler runs between ticks and the change is drawn at
+         once, then kept by every following Play tick. */
+      function reliableTap(elm, handler) {
+        var touchAt = 0;
+        elm.addEventListener("click", function () {
+          if (Date.now() - touchAt < 700) return; // this tap was already handled on touchend
+          handler();
+        });
+        elm.addEventListener("touchend", function (e) {
+          e.preventDefault(); // no synthesized click after this tap
+          touchAt = Date.now();
+          handler();
+        }, { passive: false });
+      }
+      function toggle(btn, key, after) {
+        var b = document.getElementById(btn);
+        reliableTap(b, function () {
+          state[key] = !state[key];
+          b.setAttribute("aria-pressed", state[key] ? "true" : "false");
+          if (after) after(); else drawSky();
+        });
+      }
+      toggle("labelsBtn", "labels");
+      /* Label-language segmented slider (left of Labels, two buttons
+         wide): switches the on-chart star AND planet labels between
+         English and Chinese, reusing the ZH_NAME map from the detail
+         panel (an object without a Chinese name keeps its English
+         label). The Sun and Moon chart labels follow the same
+         language (Build 30) — they are part of the planet label
+         group. The detail panel, the Brightest list and every other
+         text stay in their original language. Both segments are always shown — "EN" and "中文" —
+         and the segment for the language in use is highlighted; any
+         tap on the control toggles to the other language. The state
+         is remembered while Labels is off and applies the moment
+         labels are shown. */
+      var langBtn = document.getElementById("langBtn");
+      var langSegEn = langBtn.querySelector(".seg-en");
+      var langSegZh = langBtn.querySelector(".seg-zh");
+      function syncLangBtn() {
+        var zh = state.labelLang === "zh";
+        langSegEn.classList.toggle("on", !zh);
+        langSegZh.classList.toggle("on", zh);
+        langBtn.setAttribute("aria-label", "Label language: " + (zh ? "中文" : "English"));
+        langBtn.setAttribute("title", "Label language: " + (zh ? "中文" : "English"));
+      }
+      reliableTap(langBtn, function () {
+        state.labelLang = state.labelLang === "zh" ? "en" : "zh";
+        syncLangBtn();
+        drawSky();
+      });
+      syncLangBtn();
+      toggle("planetsBtn", "planets");
+      toggle("linesBtn", "lines");
+      toggle("mwBtn", "mw");
+      var redBtn = document.getElementById("redBtn");
+      reliableTap(redBtn, function () {
+        var on = document.body.classList.toggle("redlight");
+        redBtn.setAttribute("aria-pressed", on ? "true" : "false");
+        // Red-light mode removes ALL haze (daylight wash + twilight
+        // gradation) in every path, so record it in state and redraw:
+        // turning it on drops any current wash immediately, and turning
+        // it off brings the wash back under the normal rules.
+        state.red = on;
+        drawSky();
+      });
+
+      /* ----- Tap-to-identify anywhere on the chart -----
+         The drawn dots are only 2–5 viewBox units wide. On a desktop
+         the chart is ~700px across, so a mouse can land on one; on a
+         phone the chart is ~360px across and the same dot is 1–3
+         screen pixels — a fingertip effectively never hits it, which
+         made the chart feel dead to taps on phones. So a tap anywhere
+         on the chart selects the nearest drawn object within a
+         generous radius of the tap point. Taps that land exactly on
+         a dot are already handled by that dot's own click handler
+         (marked data-obj) and are ignored here. */
+      svg.addEventListener("click", function (evt) {
+        var n = evt.target;
+        while (n && n !== svg) {
+          if (n.getAttribute && n.getAttribute("data-obj")) return;
+          n = n.parentNode;
+        }
+        var rect = svg.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        var x = (evt.clientX - rect.left) / rect.width * 640;
+        var y = (evt.clientY - rect.top) / rect.height * 640;
+        var best = null, bestD = 30; // viewBox units — about a fingertip's accuracy
+        computed.forEach(function (o) {
+          if (o.alt <= 0) return;
+          if (o.kind === "star" && o.mag > 4.6) return; // not drawn
+          var pt = proj(o.alt, o.az);
+          var d = Math.hypot(pt.x - x, pt.y - y);
+          if (d < bestD) { bestD = d; best = o; }
+        });
+        if (best) selectObject(best);
+      });
+
+      window.addEventListener("resize", function () { readoutHourKey = null; readoutMinuteKey = null; updateReadouts(); });
+
+      // Live mode: refresh once a minute so "now" stays now
+      setInterval(function () { if (state.live && !state.playing) setDate(new Date(), true); }, 60000);
+
+      // Init: start at the current local time
+      state.date = new Date();
+      syncJumpButtons();
+      drawSky();
+      renderStrip();
+      renderMarks();
+    })();
+    </script>
+  </body>
+</html>
