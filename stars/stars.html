@@ -17,19 +17,19 @@
         --line: #d5dbea;
         --accent: #b97f16;
         --accent-ink: #7a5205;
-        /* Timeline track: black, so the coloured event strips pop
-           against it, framed by a very thin OFF-WHITE rim
-           (--track-rim, applied as a 1px outline on .slider-track).
-           The slider thumb's ring is this exact same off-white
-           (see the thumb rules below), so rim and thumb match.
-           Black bar and off-white rim/thumb in both schemes. */
+        
+
+
+
+
+
         --track: #000000;
         --track-rim: #f5f1e6;
         --chip: #e7ecf5;
         --sky-edge: #2a3a63;
         --focus: #1c64d8;
-        /* Per-event colours: each jump event's timeline strip and its
-           jump button share one colour, so the two match at a glance. */
+        
+
         --c-sunrise: #e8930c;
         --c-sunset: #d6541e;
         --c-moonrise: #f5c400;
@@ -121,17 +121,17 @@
         width: 46px; height: 46px; flex: 0 0 auto; align-self: center;
         display: block;
       }
-      /* Full moon: a soft yellow halo around the top Moon icon,
-         present only while the displayed moment's illumination
-         reads 100% (toggled from updatePhaseIcon). */
+      
+
+
       .moon-phase-icon.full-glow {
         filter: drop-shadow(0 0 5px rgba(255, 205, 60, .95)) drop-shadow(0 0 13px rgba(255, 185, 40, .6));
       }
-      /* The Moon's marker on the sky dome does NOT use a drop-shadow
-         halo at full moon — that filter doesn't render on the owner's
-         iPhone. Instead drawSky paints the dome Moon yellow/gold
-         itself at full moon (see the moon branch there); only this
-         top icon gets the glow. */
+      
+
+
+
+
 
       .layout {
         display: grid;
@@ -198,13 +198,13 @@
       .slider-group { display: flex; align-items: center; gap: 8px; flex: 1 1 240px; min-width: 0; }
       .slider-group input[type="range"] { flex: 1 1 auto; min-width: 60px; }
       .slider-wrap { position: relative; flex: 1 1 auto; min-width: 60px; display: flex; align-items: center; }
-      /* The slider's own track line is drawn as a separate layer
-         (.slider-track, z-index 0) UNDER the marker strips
-         (.slider-marks, z-index 1), and the range input itself is
-         transparent-tracked with only its thumb painted (z-index 2).
-         So the stacking is: track line < strips < thumb — the strips
-         sit in front of the line instead of being swallowed by it,
-         and the thumb still rides on top of everything. */
+      
+
+
+
+
+
+
       .slider-wrap input[type="range"] {
         flex: 1 1 auto; width: 100%; min-width: 0; position: relative; z-index: 2;
         height: 38px;
@@ -212,16 +212,16 @@
       }
       .slider-wrap input[type="range"]::-webkit-slider-runnable-track { height: 10px; background: transparent; }
       .slider-wrap input[type="range"]::-moz-range-track { height: 10px; background: transparent; }
-      /* Thumb: a HOLLOW ring ~2x the old diameter to match the
-         doubled track (Build 27: it used to be a solid disc). The
-         ring is the SAME off-white as the track rim
-         (var(--track-rim)) so the two match, and the centre is
-         50% off-white — translucent — so the coloured
-         strips underneath still show through faintly instead of being hidden
-         behind one big solid dot. The thin dark outer edge keeps
-         the pale ring readable against the page. (Firefox sizes
-         the thumb's content box, so its width is 32 minus the
-         two 3px borders.) */
+      
+
+
+
+
+
+
+
+
+
       .slider-wrap input[type="range"]::-webkit-slider-thumb {
         -webkit-appearance: none; appearance: none;
         width: 32px; height: 32px; border-radius: 50%;
@@ -236,12 +236,12 @@
         border: 3px solid var(--track-rim);
         box-shadow: 0 0 0 1px #0a1122; cursor: pointer;
       }
-      /* The black bar spans EXACTLY the thumb's travel: inset by
-         half the thumb width (16px) at each end, so the bar's left
-         edge is minute 0 (12:00 AM) and its right edge is minute
-         1439 (11:59 PM) — no extension beyond the travel on either
-         side. The event strips are positioned on this same span
-         (see renderMarks). The off-white rim is a 1px outline. */
+      
+
+
+
+
+
       .slider-track {
         position: absolute; left: 16px; right: 16px; top: 50%; height: 10px;
         transform: translateY(-50%); border-radius: 5px;
@@ -249,18 +249,18 @@
         pointer-events: none; z-index: 0;
       }
       .slider-marks { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
-      /* Jump-event markers are COLOUR STRIPS embedded in the timeline
-         itself: 3px wide and exactly as tall as the track (10px), so
-         each reads as a short vertical coloured line sitting flush
-         IN the line — no border, no frame, no disc. The odd 3px
-         width gives the strip a true centre pixel, and the strip is
-         centred (translate(-50%)) on its event's exact minute, so
-         that centre pixel is the minute's position. Each event has
-         its own colour (the --c-* tokens), and the matching jump
-         button's icon takes the same colour (see the .jump-group
-         rules below), so strip and button match at a glance. Strips
-         carry no active/highlighted state — a jump click just moves
-         the slider to the strip. */
+      
+
+
+
+
+
+
+
+
+
+
+
       .slider-mark {
         position: absolute; top: 50%; width: 3px; height: 10px;
         transform: translate(-50%, -50%);
@@ -273,11 +273,11 @@
       .slider-mark.ev-moonset { background: var(--c-moonset); }
       .slider-mark.ev-dark { background: var(--c-dark); }
       .slider-mark.ev-midnight { background: var(--c-midnight); }
-      /* "Now" (shown on today's date only) is a strip exactly
-         like the event strips — 3px wide, full track height,
-         flush in the bar, no frame — in the Now green (Build 27:
-         it used to be a small hollow diamond). Like the other
-         strips it carries no highlighted state. */
+      
+
+
+
+
       .slider-mark.now-mark { background: var(--c-now); }
       .jump-group { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; flex: 1 1 100%; justify-content: center; }
       .btn.icon-btn {
@@ -302,13 +302,13 @@
       @media (prefers-color-scheme: dark) {
         .btn[aria-pressed="true"] { color: #191104; }
       }
-      /* Jump-to buttons: each button's icon is painted in its event's
-         colour (the --evc custom property, set per button below), the
-         same colour as that event's strip on the timeline. When the
-         button is lit (aria-pressed), its background becomes that same
-         colour and the icon turns dark so the highlight stays
-         readable. The play button and the toggle-row buttons are not
-         in .jump-group and keep the plain accent treatment above. */
+      
+
+
+
+
+
+
       .jump-group .btn.icon-btn { color: var(--evc, var(--ink)); }
       .jump-group .btn.icon-btn[aria-pressed="true"] {
         background: var(--evc, var(--accent));
@@ -362,7 +362,7 @@
       .detail p.fact { margin: 0; font-size: .95rem; }
       .detail .empty { color: var(--ink-soft); font-size: .95rem; margin: 0; }
 
-      /* Wikipedia name links in the detail panel + article pop-up */
+      
       .wiki-link {
         color: inherit; text-decoration: underline;
         text-decoration-color: var(--accent); text-decoration-thickness: 1px;
@@ -488,17 +488,17 @@
         <p>Positions are computed in your browser from the catalogued coordinates of each star (J2000) and standard orbital elements for the planets and Moon, good to a fraction of a degree &mdash; plenty for finding things with the naked eye. Star data: Yale Bright Star Catalog values for the brightest named stars.</p>
       </footer>
 
-      <!-- BUILD STAMP: Format is: number, space, (Mon D, YYYY) — plus the word " Published" appended after the date ONLY if that exact build has been published; omit "Published" entirely if it has not.
-           Rules for future editors:
-           - A new content build: increment the number by 1, update the parenthesised date to the new build date, and OMIT "Published" (a fresh build is unpublished by definition).
-           - Publishing: when the owner asks to publish that exact build, adding " Published" to this line is a status-only change — do NOT increment the number or change the date for it — and that status version is what then gets shared/published.
-           Do NOT add the "expl" class — this must stay visible even when explanations are hidden. -->
+      
+
+
+
+
       <p class="build-stamp">35 (Oct 13, 2026) · Published</p>
     </div>
 
-    <!-- Wikipedia article pop-up: opened by the name links in the detail
-         panel. Closing it (✕, backdrop tap, or Esc) returns to the map
-         exactly as it was — no state is touched while it is open. -->
+    
+
+
     <div class="wiki-overlay" id="wikiOverlay" hidden role="dialog" aria-modal="true" aria-label="Wikipedia article">
       <div class="wiki-panel">
         <div class="wiki-head">
@@ -513,13 +513,13 @@
     <script>
     (function () {
       "use strict";
-      var LAT = 34.0522, LON = -118.2437; // Los Angeles
+      var LAT = 34.0522, LON = -118.2437; 
       var RAD = Math.PI / 180, DEG = 180 / Math.PI;
       function norm360(x) { x = x % 360; return x < 0 ? x + 360 : x; }
       function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
 
-      /* ---------------- Star catalog ----------------
-         name, RA (hours), Dec (deg), mag, constellation, spectral class */
+      
+
       var STARS = [
         ["Sirius",6.7522,-16.7161,-1.46,"Canis Major","A"],
         ["Arcturus",14.2610,19.1824,-0.05,"Boötes","K"],
@@ -716,7 +716,7 @@
         ["Sualocin","Rotanev"],
         ["Arneb","Nihal"]
       ];
-      // Extra stars referenced only by lines
+      
       [["Lesath",17.5139,-37.2973,2.62,"Scorpius","B"],
        ["Ascella",19.0435,-29.8800,2.60,"Sagittarius","A"],
        ["Menkalinan",5.9921,44.9474,1.90,"Auriga","A"],
@@ -756,10 +756,10 @@
       var SPCOLOR = { O:"#bcd4ff", B:"#cddcff", A:"#eef2ff", F:"#fff3da", G:"#ffe9b0", K:"#ffc98a", M:"#ff9d6b" };
 
       function parseHex(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
-      /* Sky-gradient stop colours (night → day per stop), pre-parsed
-         to RGB triples ONCE at load: drawSky used to re-parse all six
-         hex strings — 36 parseInt calls — on every frame just to
-         blend them for the daylight wash (Build 31). */
+      
+
+
+
       var SKY_STOPS = [
         [parseHex("#16264f"), parseHex("#8fc0f2")],
         [parseHex("#0b1735"), parseHex("#4a84c4")],
@@ -774,10 +774,10 @@
         return out;
       }
 
-      /* Chinese names shown beside the English in the detail panel:
-         traditional Chinese star names for the Moon, the planets, and the
-         brighter named stars (per the standard Chinese star-name lists).
-         Constellations and moon phases have their own maps below. */
+      
+
+
+
       var ZH_NAME = {
         "Moon": "月亮", "Sun": "太阳",
         "Mercury": "水星", "Venus": "金星", "Mars": "火星", "Jupiter": "木星", "Saturn": "土星",
@@ -844,7 +844,7 @@
         "Last Quarter": "下弦月", "Waning Crescent": "残月"
       };
 
-      /* ---------------- Astronomy core ---------------- */
+      
       function julian(date) { return date.getTime() / 86400000 + 2440587.5; }
       function lstDeg(jd) {
         var T = (jd - 2451545.0) / 36525;
@@ -880,7 +880,7 @@
         var dec = Math.asin(Math.sin(latR) * Math.cos(eps) + Math.cos(latR) * Math.sin(eps) * Math.sin(lamR)) * DEG;
         return { ra: norm360(ra * 15) / 15, dec: dec, lon: lon };
       }
-      // JPL approximate Keplerian elements [a(AU), e, I(deg), L(deg), longPeri(deg), longNode(deg)] + rates per Julian century
+      
       var PLANETS = [
         { name: "Mercury", el: [0.38709927, 0.20563593, 7.00497902, 252.25032350, 77.45779628, 48.33076593], rt: [0.00000037, 0.00001906, -0.00594749, 149472.67411175, 0.16047689, -0.12534081], color: "#cfc4b0", fact: "The swift planet — it never strays far from the Sun, so look for it low in twilight, just after sunset or before sunrise." },
         { name: "Venus", el: [0.72333566, 0.00677672, 3.39467605, 181.97909950, 131.60246718, 76.67984255], rt: [0.00000390, -0.00004107, -0.00078890, 58517.81538729, 0.00268329, -0.27769418], color: "#fff2cf", fact: "The brightest planet by far, thanks to its reflective cloud deck. It's often called the Evening Star or Morning Star." },
@@ -904,11 +904,11 @@
         };
       }
       function planetRaDec(p, T, ee) {
-        // T (Julian centuries) and Earth's heliocentric position
-        // (ee) are computed ONCE per computeObjects call and shared
-        // by all five planets — this used to re-derive both per
-        // planet, i.e. five identical Kepler solves for Earth on
-        // every frame (Build 31).
+        
+        
+        
+        
+        
         var pe = helioXYZ(p.el, p.rt, T);
         var x = pe.x - ee.x, y = pe.y - ee.y, z = pe.z - ee.z;
         var eps = 23.4393 * RAD;
@@ -922,7 +922,7 @@
       var PLANET_MAG0 = { Mercury: -0.60, Venus: -4.47, Mars: -1.52, Jupiter: -9.40, Saturn: -8.88 };
       var PLANET_MAGLIM = { Mercury: [-1.5, 2.0], Venus: [-4.9, -3.9], Mars: [-2.9, 1.8], Jupiter: [-2.9, -1.6], Saturn: [-0.5, 1.3] };
       function planetMag(name, helioDist, geoDist) {
-        // Standard V(1,0) system, clamped to each planet's plausible naked-eye range (phase ignored)
+        
         var m = PLANET_MAG0[name] + 5 * Math.log10(Math.max(helioDist * geoDist, 0.01));
         var lim = PLANET_MAGLIM[name];
         return clamp(m, lim[0], lim[1]);
@@ -931,9 +931,9 @@
         var s = sunRaDec(date), m = moonRaDec(date);
         return moonPhaseFromLons(s.lon, m.lon);
       }
-      // The phase depends only on the Sun's and Moon's ecliptic
-      // longitudes; a caller that already holds them (computeObjects)
-      // passes them in instead of re-running both ephemerides.
+      
+      
+      
       function moonPhaseFromLons(sunLon, moonLon) {
         var elong = norm360(moonLon - sunLon);
         var illum = (1 - Math.cos(elong * RAD)) / 2;
@@ -942,7 +942,7 @@
         return { name: names[idx], illum: illum, elong: elong };
       }
 
-      /* ---------------- State & DOM ---------------- */
+      
       var svg = document.getElementById("sky");
       var NS = "http://www.w3.org/2000/svg";
       var CX = 320, CY = 320, R = 296;
@@ -951,18 +951,18 @@
         live: true,
         playing: false,
         labels: false,
-        labelLang: "en", // language of the on-chart star, planet, Sun, and Moon labels ("en" | "zh"); UI text keeps its original language
+        labelLang: "en", 
         planets: true,
         lines: true,
         mw: false,
         eventLabel: null,
-        jump: null, // key of the highlighted time-jump button, if any
-        jumpTime: null, // timestamp that jump button points at
-        sweeping: false, // true only while a jump-button sweep is running: suppresses the daylight wash so it doesn't flash
-        red: false, // true while red-light (night-vision) mode is on: suppresses ALL haze in every path
-        selected: null // {kind, name}
+        jump: null, 
+        jumpTime: null, 
+        sweeping: false, 
+        red: false, 
+        selected: null 
       };
-      var computed = []; // objects with positions for current time
+      var computed = []; 
 
       var slider = document.getElementById("timeSlider");
       var sliderMarks = document.getElementById("sliderMarks");
@@ -977,8 +977,8 @@
       var phaseIcon = document.getElementById("phaseIcon");
       var dayNoteEl = document.getElementById("dayNote");
 
-      /* All clock times on this page are Los Angeles local time,
-         wherever the viewer happens to be. */
+      
+
       var LA_TZ = "America/Los_Angeles";
       var laPartsFmt = new Intl.DateTimeFormat("en-US", { timeZone: LA_TZ, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" });
       var laTimeFmt = new Intl.DateTimeFormat("en-US", { timeZone: LA_TZ, hour: "numeric", minute: "2-digit" });
@@ -1003,23 +1003,23 @@
       function fmtTime(d) { return laTimeFmt.format(d); }
       function fmtDate(d) { return laWeekdayFmt.format(d) + ", " + laDateFmt.format(d); }
 
-      /* Chinese lunar date (Build 32), e.g. 丙午年九月初四.
-         The conversion comes from Intl's Chinese calendar, but the
-         RENDERED strings are NOT trusted: engines disagree on them
-         (day comes back as a bare number "4" in some, a name in
-         others; month 11 as 十一月 vs 冬月). So only NUMBERS are
-         taken from Intl — via the en-US Chinese-calendar parts,
-         where a leap month's month part reads "6bis" — plus the
-         cyclical yearName from the zh parts, and the canonical
-         Chinese names are rendered here from fixed tables. The
-         ganzhi falls back to the standard (year − 4) mod 60 cycle
-         computed from relatedYear if yearName is ever absent.
-         Verified against anchors: 2026-02-17 = 丙午年正月初一
-         (Chinese New Year), 2026-09-25 = 八月十五 (Mid-Autumn),
-         2025-07-25 = 闰六月初一 (2025's leap 6th month).
-         The result is cached per LA calendar day (lunarCacheKey),
-         so the per-tick updateReadouts calls cost one string
-         compare except on an actual date change. */
+      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       var lunarNumFmt = new Intl.DateTimeFormat("en-US-u-ca-chinese", { timeZone: LA_TZ, year: "numeric", month: "numeric", day: "numeric" });
       var lunarNameFmt = new Intl.DateTimeFormat("zh-Hans-CN-u-ca-chinese", { timeZone: LA_TZ, year: "numeric", month: "long" });
       var LUNAR_MONTH_NAMES = ["正月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "冬月", "腊月"];
@@ -1049,7 +1049,7 @@
           var monRaw = String(num.month || "");
           var leap = monRaw.indexOf("bis") !== -1;
           var mon = parseInt(monRaw, 10);
-          if (isNaN(mon) && nm.month) { // fallback: read the zh month name
+          if (isNaN(mon) && nm.month) { 
             var mName = String(nm.month);
             if (mName.charAt(0) === "闰") { leap = true; mName = mName.slice(1); }
             mon = LUNAR_MONTH_BY_NAME[mName] || NaN;
@@ -1095,15 +1095,15 @@
 
       var phaseIconSig = null;
       function updatePhaseIcon(phArg) {
-        // drawSky passes the phase computeObjects already worked out
-        // for this exact moment, so the ephemeris isn't run twice.
+        
+        
         var ph = phArg || moonPhase(state.date);
-        // The icon is a 46px indicator: its picture only changes when
-        // the phase name, the rounded illumination, the lit side, or
-        // the terminator width (bucketed to 0.05px — far below a
-        // device pixel at this size) changes. During Play / sweeps
-        // drawSky runs every tick, so skip the teardown + rebuild on
-        // the ticks where none of those moved.
+        
+        
+        
+        
+        
+        
         var rotate0 = ph.elong > 180 ? 180 : 0;
         var trxB = (ph.illum > 0.005 && ph.illum <= 0.995)
           ? Math.round(Math.max(Math.abs(Math.cos(ph.elong * RAD)) * 20, 0.05) * 20) : -1;
@@ -1111,14 +1111,14 @@
         phaseIcon.classList.toggle("full-glow", Math.round(ph.illum * 100) >= 100);
         if (sig === phaseIconSig) return;
         phaseIconSig = sig;
-        phaseIcon.textContent = ""; // one-shot teardown, as in drawSky (Build 31)
+        phaseIcon.textContent = ""; 
         var label = "Moon phase shown: " + ph.name + ", " + Math.round(ph.illum * 100) + "% illuminated";
         phaseIcon.setAttribute("aria-label", label);
-        // Full-moon glow: only while the displayed moment's
-        // illumination reads 100% (the same rounded value the strip
-        // and detail panel show); any other phase gets no glow.
-        // The toggle itself sits above the signature check, so the
-        // glow still tracks date/time changes on every drawSky.
+        
+        
+        
+        
+        
         var title = el("title", {}, phaseIcon);
         title.textContent = label;
         var cx = 26, cy = 26, r = 20;
@@ -1151,21 +1151,21 @@
         PLANETS.forEach(function (p) {
           var rd = planetRaDec(p, TC, earthXYZ);
           var pos = altAz(rd.ra, rd.dec, lst);
-          // constellation by rough lookup: nearest bright star's constellation is unreliable; use ecliptic-based sign region omitted
+          
           objs.push({ kind: "planet", name: p.name, ra: rd.ra, dec: rd.dec, mag: planetMag(p.name, rd.helio, rd.dist), const: "Planet", color: p.color, fact: p.fact, alt: pos.alt, az: pos.az });
         });
         var sn = sunRaDec(date), snp = altAz(sn.ra, sn.dec, lst);
         var m = moonRaDec(date), mp = altAz(m.ra, m.dec, lst);
-        // Phase from the two longitudes just computed — calling
-        // moonPhase(date) here used to re-run the Sun AND Moon
-        // ephemerides a second time on every frame (Build 31).
+        
+        
+        
         var ph = moonPhaseFromLons(sn.lon, m.lon);
         objs.push({ kind: "moon", name: "Moon", ra: m.ra, dec: m.dec, mag: -12.0, const: ph.name + " · " + Math.round(ph.illum * 100) + "% lit", color: "#f4f1e4", phase: ph, alt: mp.alt, az: mp.az });
         objs.push({ kind: "sun", name: "Sun", ra: sn.ra, dec: sn.dec, mag: -26.74, const: "Star", color: "#f0b64a", fact: "Our own star — a yellow dwarf whose light takes about 8 minutes 20 seconds to reach Earth. Never look at it directly.", alt: snp.alt, az: snp.az });
         return { objs: objs, lst: lst };
       }
 
-      /* Galactic -> equatorial (J2000) for the Milky Way band */
+      
       function galacticToRaDec(l, b) {
         var lNGP = 122.9320, raNGP = 192.8595, decNGP = 27.1284;
         var lR = (lNGP - l) * RAD, bR = b * RAD, dR = decNGP * RAD;
@@ -1177,64 +1177,64 @@
         return { ra: ra / 15, dec: dec * DEG };
       }
 
-      /* Frame-cost note (Build 24): drawSky tears down and rebuilds
-         the ENTIRE sky on every frame, and Play / jump sweeps call it
-         every 90ms tick — so per-frame DOM work directly sets how
-         smooth the rotation feels (ticks step per-tick with no
-         catch-up, so an over-budget frame is a visible stutter).
-         Profiling the tick path found the cost concentrated in node
-         count, not in any one visual effect: ~450–500 SVG nodes were
-         created and destroyed per frame, led by the constellation
-         lines (up to 118 <line> elements), the ecliptic (~60), and —
-         when enabled — the Milky Way band (~180 fat lines), plus a
-         full "Brightest" list rebuild and two layout-thrashing
-         fitOneLine passes riding along in the same call. The
-         Sun-centred daylight gradient (Build 22) is NOT the problem:
-         it is 9 nodes and its stops/centre math is a handful of
-         arithmetic ops per frame. Fixes applied, no feature removed
-         and no visual change: line layers now accumulate their
-         segments as subpaths of a single <path>; the list, the
-         tonight strip, the slider marks, the phase icon, and
-         fitOneLine all skip their rebuild when their inputs haven't
-         changed; and the Sun/Moon ephemeris results computeObjects
-         already produced are reused instead of recomputed.
-         Build 25 hunts further: the detail panel joins the memoised
-         set (it rebuilt its HTML on every frame while an object was
-         selected), and Play's step is subdivided (see the Play
-         constants below) so time advances in 2.5-sky-minute steps
-         twice as often at the same overall rate — up close, the
-         visible jaggedness was the 5-minute snap itself, not
-         dropped frames. What remains per frame is the irreducible
-         core: one full SVG rebuild of ~250–300 nodes, dominated by
-         the star circles (each star stays its own node because it
-         is individually coloured and tappable), the gradient defs,
-         and the ~150-object ephemeris in computeObjects.
-         Build 31 continues the hunt without touching visuals or
-         timing: the svg teardown is a single textContent clear
-         instead of ~300 removeChild calls; the twelve spokes are
-         one <path>; the gradient blend uses RGB triples parsed
-         once at load instead of 36 parseInts per frame; Earth's
-         heliocentric position and the Moon's phase are computed
-         once per frame instead of five and two times over;
-         syncJumpButtons and the daytime note use element
-         references cached at startup instead of 8 getElementById
-         calls per frame; updateReadouts formats the LA parts
-         once instead of twice and skips unchanged slider/date
-         writes; renderMarks derives its memo key from parts
-         already in hand. Remaining per frame: the star circles
-         themselves (~150 nodes — each is individually coloured
-         and tappable, so they stay separate nodes), the labels
-         when on, and one 156-object alt/az pass. A persistent
-         static layer (rings / spokes / cardinals / defs kept
-         across frames instead of rebuilt) would save roughly
-         another 25–35 node creations per frame but restructures
-         the draw order; it was NOT taken in this pass. */
+      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       function drawSky() {
-        // One-shot teardown: clearing textContent detaches all
-        // ~300 children in a single operation, where the old
-        // removeChild loop paid a DOM call per node per frame
-        // (Build 31). The chart's own click listener lives on the
-        // svg element itself, so nothing else is affected.
+        
+        
+        
+        
+        
         svg.textContent = "";
         var date = state.date;
         var res = computeObjects(date);
@@ -1243,48 +1243,48 @@
         var byName = {};
         computed.forEach(function (o) { byName[o.name] = o; });
 
-        /* Daylight wash (restored): the dome's background follows the
-           Sun's altitude — a bright blue daytime wash through twilight
-           gradation to the dark night gradient — whenever the time is
-           shown statically, changed by Play, or changed by dragging
-           the slider / date controls. TWO EXCEPTIONS suppress it:
-           (1) while a jump-button sweep is running (state.sweeping),
-           the wash is suppressed and the dome keeps the uniform night
-           look, so crossing sunrise/sunset mid-sweep doesn't flash;
-           when the sweep lands, the final frame is drawn with sweeping
-           cleared, so the wash for the target time applies in one
-           settle. (2) While red-light mode is on (state.red), ALL haze
-           is removed in every path — static display, Play, slider drag,
-           date changes, and jump sweeps alike — so the dome keeps one
-           uniform red night look at every time of day; turning red
-           mode off resumes the normal rules above.
-           The wash's bright centre is NOT the middle of the dome: the
-           sky gradient is centred on the Sun's own plotted position
-           (see the gradient below), so the glow travels across the
-           dome with the Sun as the time changes. */
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         var noWash = state.sweeping || state.red;
-        // The Sun's alt/az for this exact moment is already in
-        // `computed` (computeObjects puts it there); reuse it rather
-        // than re-running the Sun ephemeris — drawSky used to call
-        // sunRaDec + altAz three extra times per frame, and drawSky
-        // runs on every Play / sweep tick.
+        
+        
+        
+        
+        
         var sunObj = byName["Sun"];
         var washSunAlt = sunObj.alt;
         var dayRaw = clamp((washSunAlt + 12) / 17, 0, 1);
         var dayF = noWash ? 0 : dayRaw * dayRaw * (3 - 2 * dayRaw);
         var twiF = noWash ? 0 : clamp(1 - Math.abs(washSunAlt + 1) / 7, 0, 1);
         var defs = el("defs", {}, svg);
-        /* Sun-centred wash: the gradient's centre is the Sun's dome
-           position, with its altitude clamped at the horizon so near
-           sunrise/sunset (and through twilight) the glow sits low at
-           the Sun's rim position. The centre is blended from the dome
-           centre toward the Sun by dayF, so as the wash fades out at
-           night the gradient settles back to the plain centred night
-           gradient — and under the suppression rules (noWash forces
-           dayF to 0) the dome is the uniform centred night look, with
-           the target-time glow applied in one settle when a sweep
-           lands and dayF returns. Strength still follows Sun altitude
-           exactly as before via dayF and the stop colours below. */
+        
+
+
+
+
+
+
+
+
+
+
         var sunGlowPt = proj(Math.max(washSunAlt, 0), sunObj.az);
         var gcx = CX + (sunGlowPt.x - CX) * dayF;
         var gcy = CY + (sunGlowPt.y - CY) * dayF;
@@ -1301,16 +1301,16 @@
         el("circle", { cx: CX, cy: CY, r: R, fill: "url(#skyGrad)" }, svg);
         el("circle", { cx: CX, cy: CY, r: R, fill: "url(#horizonGlow)" }, svg);
 
-        // altitude rings (30 / 60 deg) and spokes
+        
         [30, 60].forEach(function (alt) {
           var rr = R * (90 - alt) / 90;
           el("circle", { cx: CX, cy: CY, r: rr, fill: "none", stroke: "#5f76ad", "stroke-opacity": "0.35", "stroke-width": "1", "stroke-dasharray": "3 5" }, svg);
           var t = el("text", { x: CX + 4, y: CY - rr - 4, fill: "#8fa5cf", "font-size": "10" }, svg);
           t.textContent = alt + "°";
         });
-        // Spokes: one <path> of subpaths instead of 12 <line>
-        // nodes — same shared stroke, same geometry (Build 31,
-        // following the Build 24 line-layer conversions).
+        
+        
+        
         var dSpokes = "";
         for (var a = 0; a < 360; a += 30) {
           var p1 = proj(0, a), p2 = proj(88, a);
@@ -1318,14 +1318,14 @@
         }
         if (dSpokes) el("path", { d: dSpokes, fill: "none", stroke: "#5f76ad", "stroke-opacity": "0.16", "stroke-width": "1" }, svg);
 
-        // Milky Way band. Segments are accumulated as subpaths of
-        // TWO <path> elements (one per stroke style) instead of two
-        // <line> elements per segment: this layer alone used to add
-        // up to ~180 DOM nodes to every frame's teardown + rebuild,
-        // the heaviest single layer in the chart. A path subpath
-        // strokes exactly like the separate line did (same geometry,
-        // same round caps, same colour/opacity/width), so the band
-        // renders unchanged — it just costs two nodes per frame.
+        
+        
+        
+        
+        
+        
+        
+        
         if (state.mw) {
           var gMW = el("g", { "stroke-linecap": "round" }, svg);
           var prev = null;
@@ -1349,10 +1349,10 @@
           }
         }
 
-        // Ecliptic (dashed gold) — segments accumulated as subpaths
-        // of ONE <path> (dash pattern restarts per subpath, exactly
-        // as it did per <line>), replacing up to ~60 line nodes per
-        // frame with a single node of identical rendering.
+        
+        
+        
+        
         (function () {
           var prev = null;
           var dE = "";
@@ -1372,14 +1372,14 @@
           if (dE) el("path", { d: dE, fill: "none", stroke: "#e8c268", "stroke-opacity": "0.4", "stroke-width": "1", "stroke-dasharray": "4 4" }, svg);
         })();
 
-        // Constellation lines — all segments (up to 118) accumulated
-        // as subpaths of ONE <path> inside the same group, instead
-        // of one <line> element per segment. All segments share the
-        // group's stroke colour/opacity/width, so compositing the
-        // subpaths renders pixel-identically to the separate lines
-        // while removing ~118 node creations from every frame —
-        // this group was the biggest per-frame DOM cost in the
-        // default view (see the frame-cost note above drawSky).
+        
+        
+        
+        
+        
+        
+        
+        
         if (state.lines) {
           var gL = el("g", { stroke: "#7d97c9", "stroke-opacity": "0.5", "stroke-width": "1.1" }, svg);
           var dL = "";
@@ -1395,48 +1395,48 @@
           if (dL) el("path", { d: dL, fill: "none" }, gL);
         }
 
-        // Stars & bodies
+        
         var gS = el("g", {}, svg);
-        // The Sun's projected spot (often below the rim) — the Moon's lit
-        // limb always faces it, which orients the phase drawing.
-        // Reuses computeObjects' Sun entry (sunObj, above).
+        
+        
+        
         var sunPt = proj(sunObj.alt, sunObj.az);
-        var sorted = computed.slice().sort(function (a, b) { return b.mag - a.mag; }); // faintest first
+        var sorted = computed.slice().sort(function (a, b) { return b.mag - a.mag; }); 
         sorted.forEach(function (o) {
           if (o.alt <= 0) return;
           if (o.kind === "star" && o.mag > 4.6) return;
           var pt = proj(o.alt, o.az);
           var isSel = state.selected && state.selected.name === o.name;
           if (o.kind === "moon") {
-            // Draw ONLY the illuminated part of the Moon: the actual
-            // crescent / gibbous shape for the current phase — the
-            // terminator curve plus the bright limb — with NO outline
-            // circle and NO dark disc behind it (the lit shape used to
-            // sit inside a full outlined disc, so a crescent read as
-            // a dark disc with a white rim). In a frame rotated so +x
-            // points at the Sun, the terminator is an ellipse of
-            // semi-axis r·cos(elong) and the lit region is the Sun
-            // side of it — one formula covers crescent, quarter, and
-            // gibbous, waxing and waning — and the group rotation
-            // keeps the bright limb facing the Sun. Near new moon the
-            // shape shrinks to nearly nothing, which is correct.
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
             var mr = 9.5;
             var mAng = Math.atan2(sunPt.y - pt.y, sunPt.x - pt.x) * DEG;
-            // Full moon (the displayed moment's illumination rounds
-            // to 100% — the same condition that lights the top phase
-            // icon's glow): the lit shape is a full disc and turns
-            // yellow/gold instead of the usual pale white. A
-            // drop-shadow halo here never rendered on the owner's iPhone,
-            // so the colour change is the signal on the dome; the top
-            // icon keeps its glow. Any other phase keeps the normal
-            // pale colouring. In Red mode the .redzone filter
-            // recolours this yellow like every other colour.
+            
+            
+            
+            
+            
+            
+            
+            
+            
             var moonFull = Math.round(o.phase.illum * 100) >= 100;
             var moonLit = moonFull ? "#ffcf3f" : "#f6f3e6";
             var gM = el("g", { transform: "rotate(" + mAng.toFixed(1) + " " + pt.x.toFixed(1) + " " + pt.y.toFixed(1) + ")", cursor: "pointer", "data-obj": "1" }, gS);
-            // Invisible hit disc: the Moon stays tappable over its
-            // full disc area even when the lit shape is a hair-thin
-            // crescent (or, near new moon, effectively absent).
+            
+            
+            
             el("circle", { cx: pt.x, cy: pt.y, r: mr + 2.5, fill: "#ffffff", opacity: "0" }, gM);
             var cosE = Math.cos(o.phase.elong * RAD);
             if (o.phase.illum > 0.995) {
@@ -1450,9 +1450,9 @@
               el("path", { d: dPath, fill: moonLit }, gM);
             }
             gM.addEventListener("click", function () { selectObject(o); });
-            // The Moon belongs to the planet label group (Build 30):
-            // labelled whenever Labels OR Planets is on, in the
-            // label language like the planets.
+            
+            
+            
             if (state.labels || state.planets) label(pt, state.labelLang === "zh" ? (ZH_NAME[o.name] || o.name) : o.name, moonLit);
           } else if (o.kind === "planet") {
             el("circle", { cx: pt.x, cy: pt.y, r: 7, fill: "none", stroke: o.color, "stroke-opacity": "0.35", "stroke-width": "4" }, gS);
@@ -1460,9 +1460,9 @@
             pc.addEventListener("click", function () { selectObject(o); });
             if (state.labels || state.planets) label(pt, state.labelLang === "zh" ? (ZH_NAME[o.name] || o.name) : o.name, o.color);
           } else if (o.kind !== "sun") {
-            // The Sun is not drawn here — it gets its own single hollow
-            // ring below. (Falling through to this star branch used to
-            // paint a white centre dot inside that ring.)
+            
+            
+            
             var r = clamp(3.4 - (o.mag + 1.5) * 0.62, 0.7, 3.6);
             var col = SPCOLOR[o.sp] || "#ffffff";
             if (o.mag < 1.2) el("circle", { cx: pt.x, cy: pt.y, r: r * 2.6, fill: col, opacity: "0.16" }, gS);
@@ -1473,12 +1473,12 @@
           }
           if (isSel) {
             el("circle", { cx: pt.x, cy: pt.y, r: 13, fill: "none", stroke: "#f0b64a", "stroke-width": "2" }, gS);
-            // The Sun keeps a single ring even when selected — no faint outer ring.
+            
             if (o.kind !== "sun") el("circle", { cx: pt.x, cy: pt.y, r: 17, fill: "none", stroke: "#f0b64a", "stroke-opacity": "0.45", "stroke-width": "1" }, gS);
           }
         });
 
-        // Horizon rim + cardinals (labels sit just outside the rim, inside the frame)
+        
         el("circle", { cx: CX, cy: CY, r: R, fill: "none", stroke: "var(--sky-edge)", "stroke-width": "2" }, svg);
         function rimPoint(az, rr) { var a = az * RAD; return { x: CX - rr * Math.sin(a), y: CY - rr * Math.cos(a) }; }
         [["N", 0], ["E", 90], ["S", 180], ["W", 270]].forEach(function (c) {
@@ -1500,25 +1500,25 @@
           t.textContent = text;
         }
 
-        // The daylight wash is applied in the gradient above (and is
-        // suppressed during a jump sweep or while red mode is on — see
-        // there). The daytime note still flags when the shown sky is
-        // hidden by sunlight.
-        // dayNoteEl is cached at startup — this used to be a
-        // getElementById lookup on every frame (Build 31).
-        // washSunAlt is the same Sun altitude read at the top of
-        // this function.
+        
+        
+        
+        
+        
+        
+        
+        
         if (dayNoteEl) { dayNoteEl.hidden = !(washSunAlt > -0.5); }
 
-        // The Sun itself: ONE single hollow golden ring at its true
-        // position — empty centre, no outer halo ring. sunPt comes from
-        // the Sun's alt-az computed above for the Moon's phase
-        // orientation; only shown while the Sun is above the rim.
+        
+        
+        
+        
         if (washSunAlt > 0) {
           el("circle", { cx: sunPt.x, cy: sunPt.y, r: 12, fill: "none", stroke: "#f0b64a", "stroke-width": "2.4", "pointer-events": "none" }, svg);
-          // The Sun belongs to the planet label group (Build 30):
-          // labelled whenever Labels OR Planets is on, in the
-          // label language like the planets.
+          
+          
+          
           if (state.labels || state.planets) label(sunPt, state.labelLang === "zh" ? (ZH_NAME["Sun"] || "Sun") : "Sun", "#f0d489");
         }
 
@@ -1532,15 +1532,15 @@
       }
 
       function fitOneLine(elm, baseRem) {
-        // Shrink the font just enough that the text stays on one line.
-        // Memoised: updateReadouts calls this on EVERY drawSky — i.e.
-        // every Play / sweep tick — and each uncached call forces
-        // synchronous layout reads (clientWidth / scrollWidth) after
-        // the whole sky SVG has just been rebuilt, which made the
-        // animation ticks jank. The fitted size depends only on the
-        // base size, the available width, and the text's length, so
-        // when those are unchanged since the last fit the size is
-        // already correct and the layout reads are skipped outright.
+        
+        
+        
+        
+        
+        
+        
+        
+        
         var size = baseRem;
         var parent = elm.parentElement;
         var avail = parent ? parent.clientWidth : elm.clientWidth;
@@ -1555,62 +1555,62 @@
           guard++;
         }
       }
-      /* Readout redraw throttling (Build 26, reworked in
-         Build 31): while time is in motion — Play running, a jump
-         sweep running, or the slider being dragged — the readout
-         TEXT line (the clock line; Build 27 removed the sidereal
-         line that used to sit under it, so this single line is
-         the whole readout now) is not rewritten on every tick,
-         but the granularity now splits by path:
-         · DRAG and PLAY rewrite the text whenever the displayed
-           MINUTE changes. During a drag the timestamp must step
-           minute by minute under the thumb — under the hour-only
-           rule the digits sat frozen for up to an hour of slider
-           travel and then jumped, and the exact-minute jump-button
-           highlight (evaluated in setDate on the same per-minute
-           input events) looked broken because the time it tracks
-           never visibly moved. Play gets the same per-minute rule:
-           the cost is one text-node write on the ticks where the
-           minute actually rolls — Play steps 2.5 sky-minutes per
-           45 ms tick, so most ticks — plus a fitOneLine call that
-           is memoised on (base size, available width, text
-           length) and so usually returns before any layout read;
-           both are trivial next to the ~300-node sky rebuild in
-           the same tick.
-         · A jump SWEEP keeps the Build 26 hour-only rule — its
-           button lights its target for the whole transit rather
-           than tracking minutes, so minute digits would only
-           churn.
-         The moment motion stops, the exact full time is written
-         again: every non-motion call writes unconditionally, and
-         the stop paths (pause, drag release, sweep landing, jump
-         landing, date change) all funnel into such a call; any
-         button press also invalidates both cached keys so the
-         next draw writes exactly. The slider position and the
-         date fields below are cheap property sets guarded by
-         change, and still update on every call so the thumb
-         keeps travelling during motion. */
+      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       var readoutHourKey = null;
       var readoutMinuteKey = null;
-      var dragActive = false; // true between slider pointerdown and release
+      var dragActive = false; 
       function readoutsThrottled() { return state.playing || state.sweeping || dragActive; }
       function updateReadouts() {
         var lp = laParts(state.date);
-        // Lunar date for the LA calendar day (Build 32): cached per
-        // day inside lunarDateStr, so this is a compare on most calls.
+        
+        
         var lunar = lunarDateStr(state.date, lp);
         var hourKey = lp.y + "-" + lp.mo + "-" + lp.d + " " + lp.h + "|" + (state.eventLabel || "");
         var minuteKey = hourKey + ":" + lp.mi;
         var writeText;
-        if (!readoutsThrottled()) writeText = true; // at rest: always the exact time
-        else if (state.sweeping) writeText = hourKey !== readoutHourKey; // sweeps: hour-only (Build 26)
-        else writeText = minuteKey !== readoutMinuteKey; // drag / Play: every minute (Build 31)
+        if (!readoutsThrottled()) writeText = true; 
+        else if (state.sweeping) writeText = hourKey !== readoutHourKey; 
+        else writeText = minuteKey !== readoutMinuteKey; 
         if (writeText) {
           readoutHourKey = hourKey;
           readoutMinuteKey = minuteKey;
-          // Order (Build 32): Gregorian date, then the Chinese
-          // lunar date, then the time LAST; the jump keyword suffix
-          // still follows the time.
+          
+          
+          
           var readSegs = [fmtDate(state.date)];
           if (lunar) readSegs.push(lunar);
           readSegs.push(fmtTime(state.date));
@@ -1632,13 +1632,13 @@
       function updateList() {
         var vis = computed.filter(function (o) { return o.alt > 1.5 && (o.kind !== "star" || o.mag <= 3.4); })
           .sort(function (a, b) { return a.mag - b.mag; }).slice(0, 10);
-        // Skip the rebuild when nothing the rows actually show has
-        // changed: the row content is name, kind, colour, compass
-        // point, WHOLE-degree altitude, and the selection ring — all
-        // captured in this signature. updateList runs on every
-        // drawSky (every Play / sweep tick), and rebuilding ten
-        // buttons with listeners per tick was pure churn on the
-        // ticks where the rounded values hadn't moved.
+        
+        
+        
+        
+        
+        
+        
         var sig = vis.map(function (o) {
           return o.name + "|" + Math.round(o.alt) + "|" + compass(o.az) + "|" + o.mag.toFixed(1) + "|" +
             (state.selected && state.selected.name === o.name ? "1" : "0");
@@ -1688,19 +1688,19 @@
         detailConst.textContent = "Details";
         detailBody.innerHTML = '<p class="empty">Tap or click any point of light on the chart — or any row in the list — and its name, brightness, and where to look will appear here.</p>';
       }
-      /* ----- Wikipedia links + in-page article pop-up -----
-         The English name in the detail heading links to the English
-         Wikipedia, the Chinese name to the Chinese Wikipedia, and the
-         constellation in the sub-line gets the same treatment.
-         Clicking a name never navigates away: the article opens in
-         an overlay pop-up (iframe) with a ✕ close button and an
-         "open in new tab" fallback for pages that refuse to embed.
-         Closing restores the map untouched — no time, slider, or
-         selection state changes while the pop-up is open.
-         WIKI_EN / WIKI_ZH hold the exact article title where the
-         plain name is ambiguous (e.g. Mercury the planet); names in
-         WIKI_SEARCH have no certain article title, so they link to
-         that Wikipedia's search instead of a guessed article. */
+      
+
+
+
+
+
+
+
+
+
+
+
+
       var WIKI_EN = { "Mercury": "Mercury (planet)", "Wei": "Epsilon Scorpii", "Kraz": "Beta Corvi", "Gienah": "Epsilon Cygni", "Gienah Corvi": "Gamma Corvi", "Dschubba": "Delta Scorpii", "Acrab": "Beta Scorpii", "Lesath": "Upsilon Scorpii" };
       var WIKI_ZH = { "Moon": "月球" };
       var WIKI_SEARCH = { "Rotanev": 1, "Sualocin": 1, "Baham": 1, "Alnasl": 1, "Segin": 1, "Cursa": 1, "Nihal": 1, "Kaus Media": 1, "Kaus Borealis": 1, "Eta Herculis": 1 };
@@ -1756,12 +1756,12 @@
 
       var detailSig = null;
       function renderDetail(o) {
-        // Memoised like the list: drawSky calls this on every tick
-        // while an object is selected, and rebuilding the panel's
-        // HTML per tick was pure churn — the content depends only on
-        // the object's identity and its whole-degree alt/az, compass
-        // point, and mag/phase figures, all captured in this
-        // signature.
+        
+        
+        
+        
+        
+        
         var sig = o.name + "|" + Math.round(o.alt) + "|" + Math.round(o.az) + "|" + compass(o.az) +
           "|" + o.mag.toFixed(2) + "|" + (o.phase ? Math.round(o.phase.illum * 100) : "");
         if (sig === detailSig) return;
@@ -1786,13 +1786,13 @@
         detailBody.innerHTML = "<dl>" + rows + "</dl>" + (fact ? '<p class="fact">' + fact + "</p>" : "");
       }
 
-      /* -------- Tonight strip: sunset / darkness / moon -------- */
+      
       function sunAltAt(date) {
         var s = sunRaDec(date);
         return altAz(s.ra, s.dec, lstDeg(julian(date))).alt;
       }
       function findCrossing(day, targetAlt, rising) {
-        // scan the Los Angeles day in 2-minute steps for the sun crossing targetAlt
+        
         var lp = laParts(day);
         var start = laToUtc(lp.y, lp.mo, lp.d, 0, 0);
         var prevT = start, prevA = sunAltAt(start);
@@ -1812,11 +1812,11 @@
         return altAz(m.ra, m.dec, lstDeg(julian(date))).alt;
       }
       function findMoonCrossing(day, rising) {
-        // Moonrise/moonset: the Moon's upper limb on the horizon works out to
-        // a geocentric center altitude of about +0.125° (refraction and the
-        // Moon's semidiameter vs. its parallax). Scan from the start of the
-        // Los Angeles day, up to 36h ahead — there's one moonrise and one
-        // moonset in every ~24.8h, but not always within a given calendar day.
+        
+        
+        
+        
+        
         var targetAlt = 0.125;
         var lp = laParts(day);
         var start = laToUtc(lp.y, lp.mo, lp.d, 0, 0);
@@ -1834,12 +1834,12 @@
       }
       var stripDayKey = null;
       function renderStrip() {
-        // Everything in the strip is a function of the DAY alone
-        // (sunrise / sunset / darkness crossings + the 9 PM moon
-        // phase), never of the time of day — memoise it by day.
-        // Without this, every slider-drag input event re-ran three
-        // findCrossing scans (~2,160 ephemeris evaluations) plus a
-        // DOM rebuild, a direct cause of drag / rotation jank.
+        
+        
+        
+        
+        
+        
         var sKey = dayKey(state.date);
         if (sKey === stripDayKey) return;
         stripDayKey = sKey;
@@ -1865,10 +1865,10 @@
         });
       }
 
-      /* ----- Timeline markers: one tick per jump-button event -----
-         Events for the displayed Los Angeles day, cached per day.
-         Each entry: { key (matches JUMP_BTNS), time (ms), minutes
-         into the day } so the slider can draw a tick at its position. */
+      
+
+
+
       var eventsCache = { key: null, list: null };
       function dayKey(d) { var lp = laParts(d); return lp.y + "-" + lp.mo + "-" + lp.d; }
       function dayEvents(d) {
@@ -1878,7 +1878,7 @@
         function add(k, date) {
           if (!date) return;
           var lp = laParts(date);
-          if (lp.y + "-" + lp.mo + "-" + lp.d !== key) return; // falls on another day: no tick today
+          if (lp.y + "-" + lp.mo + "-" + lp.d !== key) return; 
           list.push({ key: k, time: date.getTime(), minutes: lp.h * 60 + lp.mi + lp.s / 60 });
         }
         add("sunrise", findCrossing(d, -0.583, true));
@@ -1886,9 +1886,9 @@
         add("moonrise", findMoonCrossing(d, true));
         add("moonset", findMoonCrossing(d, false));
         add("dark", findCrossing(d, -18, false));
-        // Midnight: the jump button goes to 11:59 PM of this day, so
-        // its marker sits a hair left of the slider's right edge and
-        // the date never rolls over to the next day.
+        
+        
+        
         var lp0 = laParts(d);
         var mid = laToUtc(lp0.y, lp0.mo, lp0.d, 23, 59);
         list.push({ key: "midnight", time: mid.getTime(), minutes: 1439 });
@@ -1896,16 +1896,16 @@
         eventsCache = { key: key, list: list };
         return list;
       }
-      // Exact-centre-only matching: an event matches only when the
-      // displayed time sits exactly on that event's preset minute —
-      // the thumb's centre on the strip's centre pixel. Anywhere
-      // between strips matches nothing, so no jump button lights,
-      // and stepping one minute (or one Play tick) past a strip
-      // turns its button off again immediately. This is the rule
-      // for touch/drag outright, and for Play's landing ticks; Play
-      // additionally lights a button briefly when a step CROSSES
-      // an event's minute without landing on it (see PLAY_GLOW_MS
-      // and the glow branch in setDate).
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
       function exactEventAt(d) {
         var lp = laParts(d);
         var mins = lp.h * 60 + lp.mi, found = null;
@@ -1915,16 +1915,16 @@
       var marksSig = null;
       function renderMarks() {
         if (!sliderMarks) return;
-        // The marks depend only on the displayed day's events plus
-        // the Now strip's minute (today only). setDate calls this
-        // on every Play / sweep tick, so skip the teardown + rebuild
-        // on ticks where neither has changed.
+        
+        
+        
+        
         var now0 = new Date();
         var lpN = laParts(now0);
-        // Both day keys derive from parts already in hand — this
-        // used to call dayKey (a full Intl formatToParts) three
-        // more times on every setDate, before the memo check
-        // could even run (Build 31).
+        
+        
+        
+        
         var todayKey = lpN.y + "-" + lpN.mo + "-" + lpN.d;
         var stateKey = dayKey(state.date);
         var isToday = todayKey === stateKey;
@@ -1936,18 +1936,18 @@
           var frac = clamp(minutes, 0, 1439) / 1439;
           var s = document.createElement("span");
           s.className = "slider-mark" + (cls ? " " + cls : "");
-          // The span matches the black bar exactly (and the thumb's
-          // travel): 16px in from each end of the wrap (half the
-          // 32px thumb). Minute 0 sits at the bar's left edge,
-          // minute 1439 at its right edge, and a strip sits where
-          // the thumb centre is at that time.
+          
+          
+          
+          
+          
           s.style.left = "calc(16px + (100% - 32px) * " + frac.toFixed(4) + ")";
           sliderMarks.appendChild(s);
         }
-        // Event strips never highlight: no active class in any path
-        // (jump click, Play, or drag) — only the jump BUTTONS light.
-        // Each strip carries its event's class so it renders in that
-        // event's colour, matching its jump button's icon.
+        
+        
+        
+        
         dayEvents(state.date).forEach(function (e) {
           tick("ev-" + e.key, e.minutes);
         });
@@ -1956,14 +1956,14 @@
         }
       }
 
-      /* ---------------- Controls ---------------- */
+      
       var JUMP_BTNS = {
         sunrise: "sunriseBtn", sunset: "sunsetBtn", moonrise: "moonriseBtn",
         now: "nowBtn", moonset: "moonsetBtn", dark: "darkBtn", midnight: "midnightBtn"
       };
-      // Button elements resolved ONCE: syncJumpButtons runs on
-      // every setDate — i.e. every Play / sweep / drag tick — and
-      // used to pay seven getElementById lookups per call (Build 31).
+      
+      
+      
       var JUMP_BTN_ELS = {};
       Object.keys(JUMP_BTNS).forEach(function (key) { JUMP_BTN_ELS[key] = document.getElementById(JUMP_BTNS[key]); });
       function syncJumpButtons() {
@@ -1972,64 +1972,64 @@
           if (b) b.setAttribute("aria-pressed", state.jump === key ? "true" : "false");
         });
       }
-      // Any button press forces the next readout write to be the
-      // exact full time, even mid-Play / mid-sweep (see the
-      // throttling note at updateReadouts). Capture phase, so the
-      // key is cleared before the button's own handler redraws.
+      
+      
+      
+      
       document.addEventListener("click", function (e) {
         if (e.target && e.target.closest && e.target.closest("button")) { readoutHourKey = null; readoutMinuteKey = null; }
       }, true);
       function setDate(d, keepLive, jumpKey, light, dateChange, exactOnly) {
         if (jumpKey) {
-          // A jump button was tapped: it owns the highlight from the
-          // tap until the displayed time moves off its event's minute
-          // by some other path (Play, drag, date change).
+          
+          
+          
           state.jump = jumpKey;
           state.jumpTime = d.getTime();
         } else if (dateChange) {
-          // The date changed via the date field/picker or the ◀ ▶
-          // day-shift arrows: no jump button may be lit afterwards.
-          // Any existing highlight clears, and the marker pass-through
-          // below does NOT run — even if the unchanged time of day
-          // sits past a tick on the new date, a date change never
-          // lights a button. Pass-through highlighting stays only
-          // for Play and slider drags.
+          
+          
+          
+          
+          
+          
+          
           state.jump = null;
           state.jumpTime = null;
         } else if (state.jump === "now" && keepLive && state.live) {
-          // Live mode: the view still tracks "now", so Now keeps its
-          // highlight and its moment rolls forward with the clock.
+          
+          
           state.jumpTime = d.getTime();
         } else if (!(keepLive && state.live)) {
-          // The displayed time moved without a jump button (slider
-          // drag or Play — date changes take the branch above and
-          // never light a button). One rule for both paths now:
-          // exact-centre-only. A jump button lights ONLY while the
-          // displayed time sits exactly on that event's preset minute
-          // (the thumb's centre on the strip's centre); the moment
-          // playback or the drag steps past it — even by one tick —
-          // the button turns off again, and anywhere between strips
-          // nothing is lit. There is no "most recent marker stays
-          // lit" persistence in any path. (The exactOnly argument is
-          // kept for the drag call site's clarity; both paths take
-          // this same branch.) PLAY-ONLY EXCEPTION: while Play is
-          // running, a step that CROSSES an event's minute lights
-          // that button for a short dwell (PLAY_GLOW_MS) even when
-          // no tick lands exactly on it — see the glow branch just
-          // below; the drag path never does this. Clicks that don't change the time
-          // never reach setDate, so the highlight still survives
-          // selecting stars/toggles. EXCEPTION: while a jump-button
-          // sweep is running (state.sweeping), the highlight stays on
-          // the button being jumped to — animateTo set it when the
-          // sweep started — and markers passed on the way do NOT
-          // light their buttons.
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
           if (!state.sweeping) {
             if (state.playing && playGlowKey && Date.now() < playGlowUntil) {
-              // Play crossing glow: a recent Play step crossed (or
-              // landed on) this event's minute, so its button stays
-              // lit for the glow dwell even though this tick's
-              // displayed minute is already past the strip. Once the
-              // dwell expires, the exact-only rule below resumes.
+              
+              
+              
+              
+              
               state.jump = playGlowKey;
               state.jumpTime = playGlowTime;
             } else {
@@ -2047,60 +2047,60 @@
         renderMarks();
       }
 
-      /* ----- Animated jump: rotate the sky to the target moment -----
-         Instead of snapping, the displayed time sweeps continuously
-         from wherever it is now to the jump target, so the stars, Sun,
-         Moon and planets wheel across the dome and the slider thumb
-         travels with them. Intermediate frames go through setDate
-         without a jump key, but the golden highlight does NOT hand
-         off through timeline markers passed on the way: the tapped
-         button is highlighted from the moment the sweep starts and
-         stays the only highlighted button for the whole sweep,
-         landing still highlighted (setDate skips its marker-handoff
-         while a sweep is running). There is no pass-through
-         highlighting in any path: Play and slider drags are both
-         exact-centre-only, and date changes light nothing.
-         Tapping
-         another jump button retargets from the current mid-sweep
-         position; the slider, date controls and Play cancel the sweep. */
-      /* Play speed: Play advances the display by PLAY_STEP_MS of sky
-         time every PLAY_TICK_MS of real time — 2.5 sky-minutes every
-         45 ms, the SAME overall rate as the original 5 sky-minutes
-         every 90 ms (~55.6 sky-min/sec), subdivided into half-steps
-         twice as often (Build 25) so objects move in smaller snaps
-         and the rotation reads smoother up close. Still purely
-         interval-driven per-tick stepping — no
-         requestAnimationFrame (iOS history) and no catch-up steps,
-         so on a slow device Play slows down with its ticks.
-         The jump sweep does NOT follow Play's constants: it keeps
-         its own SWEEP_* values — 15 sky-minutes per 90 ms tick,
-         three times Play's overall rate (~167 sky-min/sec vs Play's
-         ~55.6) — so it rotates noticeably faster than Play while
-         still advancing purely per-tick with no wall-clock progress. */
-      var PLAY_STEP_MS = 2.5 * 60000; // 2.5 sky-minutes per tick
+      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      
+
+
+
+
+
+
+
+
+
+
+
+
+
+      var PLAY_STEP_MS = 2.5 * 60000; 
       var PLAY_TICK_MS = 45;
-      /* Play crossing glow (Build 26): a 2.5-minute Play step often
-         steps OVER an event's exact minute without any tick landing
-         on it, and when a tick does land, the exact-only light
-         lasted a single 45 ms tick — together that made the button
-         glow look unreliable during Play. So the Play tick also
-         checks whether its step CROSSED an event's minute (event
-         minute in (previous, current] of the step): if so, that
-         event's button lights and stays lit for at least
-         PLAY_GLOW_MS, then goes off — visible, but never persisting
-         toward the next event. Drag keeps exact-only, jump taps
-         keep their target lighting, date changes light nothing. */
+      
+
+
+
+
+
+
+
+
+
+
       var PLAY_GLOW_MS = 150;
       var playGlowKey = null, playGlowTime = null, playGlowUntil = 0, glowTimer = null;
-      var SWEEP_STEP_MS = 15 * 60000; // sweep: 15 sky-minutes per tick — three times Play's rate
-      var SWEEP_TICK_MS = 90; // sweep tick
+      var SWEEP_STEP_MS = 15 * 60000; 
+      var SWEEP_TICK_MS = 90; 
 
       var animId = null;
       function cancelAnim() {
         if (animId !== null) { clearInterval(animId); animId = null; }
-        // Cancelling a sweep (Play, slider drag, date change, retarget)
-        // ends the wash suppression: from this moment the dome's
-        // daylight wash follows the displayed time again.
+        
+        
+        
         state.sweeping = false;
       }
       function animateTo(target, jumpKey, onDone) {
@@ -2112,39 +2112,39 @@
           if (onDone) onDone();
           return;
         }
-        // A real sweep is now running: suppress the daylight wash for
-        // its whole transit (uniform night dome, no day/night flash).
-        // The completion paths call cancelAnim() — clearing this flag —
-        // before their final setDate, so the wash for the target time
-        // applies exactly once, when the sweep lands.
+        
+        
+        
+        
+        
         state.sweeping = true;
-        // The tapped button takes the golden highlight right now and
-        // keeps it for the whole sweep: setDate's marker-handoff is
-        // suppressed while state.sweeping is set, so intermediate
-        // markers the rotation passes never light their buttons, and
-        // the final frame (setDate with jumpKey) confirms this same
-        // highlight on landing.
+        
+        
+        
+        
+        
+        
         state.jump = jumpKey;
         state.jumpTime = to;
         syncJumpButtons();
         renderMarks();
-        // The sweep runs at exactly THREE TIMES Play's overall rate: it
-        // ticks on its own fixed interval (SWEEP_TICK_MS = 90 ms)
-        // and each tick steps the displayed time by SWEEP_STEP_MS —
-        // 15 sky-minutes per tick — so the total duration is
-        // distance ÷ (3 × Play rate), forward or backward, with
-        // no fixed cap. Progress is purely per-tick: no wall-clock /
-        // Date.now math and no catch-up steps, so if redraw load
-        // delays ticks the sweep slows with them, exactly like Play. (An earlier
-        // version ticked every 16 ms off the wall clock; a full chart
-        // redraw per tick made that interval slip, and a stalled clock
-        // — as in the audit harness — froze it outright, while Play's
-        // per-tick stepping kept working in both places, including
-        // on the owner's iPhone where the rAF-driven sweep never moved.)
-        // With iOS Reduce Motion on, jumps used to skip the sweep
-        // and snap instantly, which also looked exactly like the
-        // rotation not working; reduced motion instead keeps a brief
-        // 300 ms eased glide on a 16 ms tick-counted interval.
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         if (reduced) {
           var ticks = 0;
@@ -2158,7 +2158,7 @@
               if (onDone) onDone();
               return;
             }
-            var e = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; // easeInOutCubic
+            var e = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; 
             setDate(new Date(from + (to - from) * e), false, null, true);
           }, 16);
           return;
@@ -2181,18 +2181,18 @@
         var mins = parseInt(slider.value, 10);
         var lp = laParts(state.date);
         state.live = false; state.eventLabel = null; stopPlay();
-        // Touch/drag on the timeline: exact-only highlighting — a
-        // jump button lights only while the slider sits exactly on
-        // that event's dot, and goes out again the moment it moves
-        // off (final arg exactOnly=true). This also covers taps on
-        // the track that jump the thumb to a middle position.
+        
+        
+        
+        
+        
         setDate(laToUtc(lp.y, lp.mo, lp.d, Math.floor(mins / 60), mins % 60), false, null, false, false, true);
       });
-      // Drag boundaries for the readout throttling: while the
-      // pointer is down on the slider the readout updates on
-      // every minute change (Build 31 — see updateReadouts); on
-      // release the exact full time is written at once.
-      // ('change' covers keyboard / non-pointer releases.)
+      
+      
+      
+      
+      
       slider.addEventListener("pointerdown", function () { dragActive = true; });
       window.addEventListener("pointerup", function () {
         if (!dragActive) return;
@@ -2207,7 +2207,7 @@
       dateInput.addEventListener("change", function () {
         if (!dateInput.value) return;
         navBusy = true;
-        killPlayTimer(); // a date picked mid-Play stops Play first (Build 29)
+        killPlayTimer(); 
         cancelAnim();
         var parts = dateInput.value.split("-");
         var lp = laParts(state.date);
@@ -2216,44 +2216,44 @@
         renderStrip();
         navBusy = false;
       });
-      // Touching the date field mid-Play stops Play on the spot
-      // (Build 29): otherwise every Play tick rewrites the field's
-      // value from the still-advancing displayed date, which can
-      // race the open native picker and clobber the pick before
-      // "change" ever fires. The pick itself then lands through
-      // the change handler above with Play already stopped.
+      
+      
+      
+      
+      
+      
       dateInput.addEventListener("pointerdown", function () {
         if (state.playing) { killPlayTimer(); stopPlay(); }
       });
-      /* Jump dispatch (Build 28; tap delivery hardened in Build 29):
-         what a jump tap does splits on whether Play was running at
-         the moment of the tap — read BEFORE the timer is killed.
-         Play NOT running: the established behaviour, the rotating
-         sweep (animateTo). Play RUNNING: Play stops and the time is
-         set INSTANTLY to the event — no sweep, no rotation — via
-         the same setDate call a sweep landing makes, so the readout
-         writes the exact time + keyword and the target button
-         lights as a normal landing.
+      
 
-         Build 29 — why row 1 STILL didn't stop Play on the phone
-         after Build 28: Build 28 changed only this dispatch logic;
-         the jump buttons themselves still listened for plain click,
-         while Play/Pause (Build 27) and the second row (Build 28)
-         had moved to reliableTap — the tap handled on touchend,
-         immediately, preventDefault suppressing the synthesized
-         click, a 700 ms guard swallowing any straggler. A desktop
-         click is always delivered, so Build 28 verified clean in
-         the probe; on the phone, under the 45 ms Play redraw, a
-         first-row tap's click could be lost exactly like the pause
-         and toggle taps before it. The jump buttons and the
-         day-shift arrows now go through reliableTap too (defined
-         below with the second row; function declarations hoist, so
-         it is callable here). Two further defences, so even a
-         partially delivered tap stops playback: each handler kills
-         the Play timer FIRST — before its target is even computed —
-         via killPlayTimer, and the Play tick itself refuses to
-         advance while navBusy says a jump/date interaction is
-         mid-flight. */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       var navBusy = false;
       function killPlayTimer() {
         if (playTimer) { clearInterval(playTimer); playTimer = null; }
@@ -2271,29 +2271,29 @@
       function jumpTap(key, label, compute) {
         navBusy = true;
         var wasPlaying = state.playing;
-        killPlayTimer(); // FIRST: playback is dead before anything else runs
+        killPlayTimer(); 
         var target = compute();
         if (target) jumpTo(target, key, label, wasPlaying);
-        else stopPlay(); // no such event in range: still settle Play's button/glow
+        else stopPlay(); 
         navBusy = false;
       }
       reliableTap(document.getElementById("nowBtn"), function () {
-        // A Now tap DURING Play also takes the instant path (Play
-        // stops, time snaps straight to the current moment, live
-        // tracking resumes) — the same instant set the cross-date
-        // rule below uses. wasPlaying is read, and the Play timer
-        // killed, before anything else runs (Build 29).
+        
+        
+        
+        
+        
         navBusy = true;
         var wasPlaying = state.playing;
         killPlayTimer();
         state.eventLabel = "Now"; stopPlay();
         var now = new Date();
         if (wasPlaying || dayKey(now) !== dayKey(state.date)) {
-          // The displayed LA date is not today: snap straight to the
-          // current date and time in a single instant step — no
-          // rotating sweep across the date change — then resume live
-          // tracking with Now highlighted, exactly as a same-day Now
-          // landing leaves things.
+          
+          
+          
+          
+          
           cancelAnim();
           state.live = true;
           setDate(now, true, "now"); renderStrip();
@@ -2301,7 +2301,7 @@
           state.live = true;
           setDate(now, true, "now"); renderStrip();
         } else {
-          // Sweep to the current moment, then resume live tracking.
+          
           state.live = false;
           animateTo(now, "now", function () { state.live = true; });
         }
@@ -2329,14 +2329,14 @@
         jumpTap("moonset", "Moonset", function () { return findMoonCrossing(state.date, false); });
       });
       function shiftDay(delta) {
-        // A date shift stops Play (Build 29): the timer is killed
-        // FIRST, before the new date is computed or anything moves,
-        // and the arrows use reliableTap so the tap itself is
-        // delivered on the phone even mid-Play — they were plain
-        // click listeners, the same delivery gap as row 1. The
-        // setDate call keeps dateChange=true, so no jump button is
-        // lit on the new date (Build 19) and the time of day is
-        // preserved exactly.
+        
+        
+        
+        
+        
+        
+        
+        
         navBusy = true;
         killPlayTimer();
         cancelAnim();
@@ -2357,12 +2357,12 @@
       var PLAY_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>';
       var PAUSE_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h3.4v14H7zM13.6 5H17v14h-3.4z"/></svg>';
       function scheduleGlowClear() {
-        // Safety net for the crossing glow: once the dwell has
-        // expired, if the glow's button is somehow still the lit
-        // one (e.g. Play was halted by a path that didn't redraw),
-        // settle the highlight back to the exact-only rule. While
-        // Play keeps ticking, setDate's expiry check handles this
-        // on its own and this timer simply finds nothing to do.
+        
+        
+        
+        
+        
+        
         if (glowTimer) clearTimeout(glowTimer);
         glowTimer = setTimeout(function () {
           glowTimer = null;
@@ -2379,10 +2379,10 @@
       function stopPlay() {
         if (playTimer) { clearInterval(playTimer); playTimer = null; }
         state.playing = false;
-        // A crossing glow must not outlive Play: clear it and
-        // settle the highlight to the exact-only rule right now.
-        // (Callers that go on to a jump / drag / date change set
-        // the highlight themselves immediately after this.)
+        
+        
+        
+        
         if (playGlowKey) {
           playGlowKey = null; playGlowTime = null; playGlowUntil = 0;
           if (glowTimer) { clearTimeout(glowTimer); glowTimer = null; }
@@ -2398,42 +2398,42 @@
         playBtn.setAttribute("title", "Play");
         playBtn.innerHTML = PLAY_SVG;
       }
-      /* Play / Pause toggling (Build 27 — the pause fix). the owner
-         reported that during Play, tapping Pause did nothing: the
-         sky kept turning until he dragged the slider (whose input
-         handler stops Play on its own direct path). A clean mouse
-         click paused correctly, so the toggle logic itself was
-         sound — what failed on the phone was DELIVERY of the tap
-         as a single click while the 45 ms Play redraw had the main
-         thread saturated, with nothing defending the toggle against
-         a lost, doubled, or re-fired activation. Three defences,
-         no behaviour change otherwise:
-         (1) Taps are handled on touchend, immediately, and
-             preventDefault suppresses the synthesized click that
-             follows a tap, so one tap toggles exactly once; a
-             timestamp guard also swallows any click that still
-             slips through within 700 ms of a touch-handled toggle
-             (a second toggle would restart Play the instant Pause
-             stopped it — indistinguishable from "pause doesn't
-             work"). Mouse and keyboard activation still use click.
-         (2) Starting Play clears any pre-existing Play timer
-             first, so timers can never stack.
-         (3) Each tick checks it still belongs to THE live Play
-             timer; an orphaned interval (paused, or replaced by a
-             newer timer) clears itself and does nothing, so no
-             stray timer can keep the sky moving after Pause. */
+      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       var playTouchAt = 0;
       function togglePlay() {
-        // A toggle press, like any button press, invalidates the
-        // throttled readout's cached keys so the exact time is
-        // written — touchend taps bypass the document click
-        // listener that normally does this.
+        
+        
+        
+        
         readoutHourKey = null; readoutMinuteKey = null;
         if (state.playing) {
           stopPlay();
-          // Pausing ends the motion: write the exact full time now
-          // (during Play the readout tracked the minute only, and
-          // the keys nulled above force this write regardless).
+          
+          
+          
           updateReadouts();
           return;
         }
@@ -2446,27 +2446,27 @@
         playBtn.innerHTML = PAUSE_SVG;
         var myTimer = setInterval(function () {
           if (!state.playing || playTimer !== myTimer) { clearInterval(myTimer); return; }
-          // Defensive (Build 29): never advance time while a jump
-          // or date interaction is mid-flight — its handler has
-          // already killed this timer, so this is the second line
-          // of defence if a tick was somehow already queued.
+          
+          
+          
+          
           if (navBusy) return;
-          // Play loops WITHIN the displayed day: advance the
-          // minute-of-day and wrap 1440 → 0 (11:59 PM back to
-          // 12:00 AM of the SAME date), so the date never changes
-          // during Play and the button glow stays inside the day's
-          // strips. Seconds ride along so the 2.5-minute steps stay
-          // exact from any starting time.
+          
+          
+          
+          
+          
+          
           var lp = laParts(state.date);
           var prevMins = lp.h * 60 + lp.mi + lp.s / 60;
           var mins = prevMins + PLAY_STEP_MS / 60000;
           if (mins >= 1440) mins -= 1440;
-          // Crossing pass (Play only): if this step's whole-minute
-          // span — minutes (previous, current], wrapping at
-          // midnight — contains an event's minute, light that
-          // event's button for the glow dwell, whether or not a
-          // tick lands exactly on it. setDate's glow branch keeps
-          // it lit until the dwell expires.
+          
+          
+          
+          
+          
+          
           var prevWhole = Math.floor(prevMins), curWhole = Math.floor(mins);
           var span = (curWhole - prevWhole + 1440) % 1440;
           if (span > 0 && span < 720) {
@@ -2490,44 +2490,44 @@
         playTimer = myTimer;
       }
       playBtn.addEventListener("click", function () {
-        if (Date.now() - playTouchAt < 700) return; // this tap was already handled on touchend
+        if (Date.now() - playTouchAt < 700) return; 
         togglePlay();
       });
       playBtn.addEventListener("touchend", function (e) {
-        e.preventDefault(); // no synthesized click after this tap
+        e.preventDefault(); 
         playTouchAt = Date.now();
         togglePlay();
       }, { passive: false });
-      /* Reliable taps for the second control row (Build 28 — the
-         toggles-dead-during-Play regression). the owner reported the
-         language slider and the Labels / Planets / Constellations /
-         Milky Way / Red toggles stopped responding DURING Play,
-         though they worked while the sky was still. The state is
-         not the problem: nothing in the redraw path writes toggle
-         state — drawSky only reads it — and the handlers themselves
-         are unchanged from when they worked. What changed is the
-         load they compete with: these controls listened ONLY for
-         click, and under the 45 ms Play redraw the main thread is
-         saturated, so on the phone a tap's click can be lost
-         outright, or delivered in a way that toggles twice back to
-         the starting state — the same delivery failure the Build 27
-         pause fix diagnosed, which only hardened Play/Pause.
-         reliableTap extends those defences to a control: the tap is
-         handled on touchend, immediately, preventDefault suppresses
-         the synthesized click that follows, and a 700 ms timestamp
-         guard swallows any click that still slips through, so one
-         tap toggles exactly once. Mouse and keyboard activation
-         still use click. Play is never stopped or paused by this:
-         the handler runs between ticks and the change is drawn at
-         once, then kept by every following Play tick. */
+      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       function reliableTap(elm, handler) {
         var touchAt = 0;
         elm.addEventListener("click", function () {
-          if (Date.now() - touchAt < 700) return; // this tap was already handled on touchend
+          if (Date.now() - touchAt < 700) return; 
           handler();
         });
         elm.addEventListener("touchend", function (e) {
-          e.preventDefault(); // no synthesized click after this tap
+          e.preventDefault(); 
           touchAt = Date.now();
           handler();
         }, { passive: false });
@@ -2541,18 +2541,18 @@
         });
       }
       toggle("labelsBtn", "labels");
-      /* Label-language segmented slider (left of Labels, two buttons
-         wide): switches the on-chart star AND planet labels between
-         English and Chinese, reusing the ZH_NAME map from the detail
-         panel (an object without a Chinese name keeps its English
-         label). The Sun and Moon chart labels follow the same
-         language (Build 30) — they are part of the planet label
-         group. The detail panel, the Brightest list and every other
-         text stay in their original language. Both segments are always shown — "EN" and "中文" —
-         and the segment for the language in use is highlighted; any
-         tap on the control toggles to the other language. The state
-         is remembered while Labels is off and applies the moment
-         labels are shown. */
+      
+
+
+
+
+
+
+
+
+
+
+
       var langBtn = document.getElementById("langBtn");
       var langSegEn = langBtn.querySelector(".seg-en");
       var langSegZh = langBtn.querySelector(".seg-zh");
@@ -2576,24 +2576,24 @@
       reliableTap(redBtn, function () {
         var on = document.body.classList.toggle("redlight");
         redBtn.setAttribute("aria-pressed", on ? "true" : "false");
-        // Red-light mode removes ALL haze (daylight wash + twilight
-        // gradation) in every path, so record it in state and redraw:
-        // turning it on drops any current wash immediately, and turning
-        // it off brings the wash back under the normal rules.
+        
+        
+        
+        
         state.red = on;
         drawSky();
       });
 
-      /* ----- Tap-to-identify anywhere on the chart -----
-         The drawn dots are only 2–5 viewBox units wide. On a desktop
-         the chart is ~700px across, so a mouse can land on one; on a
-         phone the chart is ~360px across and the same dot is 1–3
-         screen pixels — a fingertip effectively never hits it, which
-         made the chart feel dead to taps on phones. So a tap anywhere
-         on the chart selects the nearest drawn object within a
-         generous radius of the tap point. Taps that land exactly on
-         a dot are already handled by that dot's own click handler
-         (marked data-obj) and are ignored here. */
+      
+
+
+
+
+
+
+
+
+
       svg.addEventListener("click", function (evt) {
         var n = evt.target;
         while (n && n !== svg) {
@@ -2604,10 +2604,10 @@
         if (!rect.width || !rect.height) return;
         var x = (evt.clientX - rect.left) / rect.width * 640;
         var y = (evt.clientY - rect.top) / rect.height * 640;
-        var best = null, bestD = 30; // viewBox units — about a fingertip's accuracy
+        var best = null, bestD = 30; 
         computed.forEach(function (o) {
           if (o.alt <= 0) return;
-          if (o.kind === "star" && o.mag > 4.6) return; // not drawn
+          if (o.kind === "star" && o.mag > 4.6) return; 
           var pt = proj(o.alt, o.az);
           var d = Math.hypot(pt.x - x, pt.y - y);
           if (d < bestD) { bestD = d; best = o; }
@@ -2617,10 +2617,10 @@
 
       window.addEventListener("resize", function () { readoutHourKey = null; readoutMinuteKey = null; updateReadouts(); });
 
-      // Live mode: refresh once a minute so "now" stays now
+      
       setInterval(function () { if (state.live && !state.playing) setDate(new Date(), true); }, 60000);
 
-      // Init: start at the current local time
+      
       state.date = new Date();
       syncJumpButtons();
       drawSky();

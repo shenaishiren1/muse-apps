@@ -13,6 +13,6 @@ A live interactive star map (planisphere) for Los Angeles, built with Muse (Omi)
 
 ## Provenance
 
-- Exported from the Muse artifact `star-map` on 2026-10-24 (America/Los_Angeles).
+- Exported from the Muse artifact `star-map` on 2026-11-13 (America/Los_Angeles).
 - Public (published) version: https://muse.ai/s/star-map-xtf665xx5xao6xn
-- This snapshot is the latest in-chat build at export time. The only edits made for this archive copy are inside code comments (development notes), to keep personal names out of the public source; the app itself is unchanged.
+- This snapshot is Build 35 (2026-10-13), the published version. All code comments are stripped from this archive copy — code only; the app itself is unchanged.
