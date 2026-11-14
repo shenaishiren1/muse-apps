@@ -1,0 +1,1320 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>Kana Flashcards</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@600;700;900&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --paper: #f7f3ec;
+        --paper-deep: #efe8db;
+        --card: #fffdf8;
+        --card-back: #fdf6ec;
+        --ink: #20242c;
+        --ink-soft: #5a6068;
+        --line: #ddd3c0;
+        --accent: #bc3f2a;
+        --accent-ink: #a3331f;
+        --accent-soft: #f6e3dc;
+        --good: #2e7d4f;
+        --good-soft: #e0efe4;
+        --bad: #b3261e;
+        --bad-soft: #f9e0dc;
+        --mid: #8a6d00;
+        --mid-soft: #f7ecc4;
+        --red-fill: #c13a2a;
+        --red-fill-ink: #ffffff;
+        --yellow-fill: #efc93f;
+        --yellow-fill-ink: #3a2f00;
+        --green-fill: #2e7d4f;
+        --green-fill-ink: #ffffff;
+        --shadow: 0 18px 40px rgba(50, 38, 20, 0.16), 0 3px 8px rgba(50, 38, 20, 0.1);
+        --radius: 18px;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #16181d;
+          --paper-deep: #101216;
+          --card: #22262e;
+          --card-back: #262019;
+          --ink: #ece7dc;
+          --ink-soft: #a7a294;
+          --line: #3a3e46;
+          --accent: #e0684e;
+          --accent-ink: #eda48f;
+          --accent-soft: #3d2721;
+          --good: #6fce96;
+          --good-soft: #22382b;
+          --bad: #f08a7d;
+          --bad-soft: #3a2422;
+          --mid: #e8c95a;
+          --mid-soft: #38311a;
+          --red-fill: #a03a2c;
+          --red-fill-ink: #ffe9e4;
+          --yellow-fill: #c9a227;
+          --yellow-fill-ink: #221b00;
+          --green-fill: #2c6e46;
+          --green-fill-ink: #e6f5ec;
+          --shadow: 0 18px 40px rgba(0, 0, 0, 0.5), 0 3px 8px rgba(0, 0, 0, 0.4);
+        }
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        background: var(--paper);
+        color: var(--ink);
+        font-family: "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        min-height: 100vh;
+      }
+      .wrap {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 20px 16px 48px;
+      }
+
+      
+      .head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      .head h1 {
+        font-family: "Noto Serif JP", serif;
+        font-weight: 900;
+        font-size: 26px;
+        margin: 0;
+        letter-spacing: 0.01em;
+      }
+      .head h1 .jp { color: var(--accent); }
+      .head .sub {
+        font-size: 13px;
+        color: var(--ink-soft);
+        text-align: right;
+        line-height: 1.45;
+      }
+
+      
+      .controls {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 18px;
+      }
+      .seg {
+        display: flex;
+        background: var(--paper-deep);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 4px;
+        gap: 2px;
+      }
+      .seg button {
+        flex: 1;
+        appearance: none;
+        border: 0;
+        background: transparent;
+        color: var(--ink-soft);
+        font: inherit;
+        font-size: 14px;
+        font-weight: 600;
+        padding: 8px 4px;
+        border-radius: 999px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .seg button[aria-pressed="true"] {
+        background: var(--card);
+        color: var(--ink);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
+      }
+      .seg button .jp { font-family: "Noto Serif JP", serif; font-size: 17px; line-height: 1; }
+      .rowline {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: 4px;
+      }
+      #rowFilters .chip {
+        flex: 1 1 0;
+        min-width: 0;
+        padding: 5px 2px;
+        text-align: center;
+        font-size: 12.5px;
+        white-space: nowrap;
+        overflow: hidden;
+      }
+      .rowline .lbl {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+        margin-right: 2px;
+      }
+      .chip {
+        appearance: none;
+        border: 1px solid var(--line);
+        background: var(--card);
+        color: var(--ink-soft);
+        font: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        padding: 5px 11px;
+        border-radius: 999px;
+        cursor: pointer;
+      }
+      .chip[aria-pressed="true"] {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+      @media (prefers-color-scheme: dark) {
+        .chip[aria-pressed="true"] { color: #1c110c; background: var(--accent); border-color: var(--accent); }
+      }
+      .toggles {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .tgl {
+        appearance: none;
+        border: 1px solid var(--line);
+        background: transparent;
+        color: var(--ink-soft);
+        font: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        padding: 5px 11px;
+        border-radius: 999px;
+        cursor: pointer;
+      }
+      .tgl[aria-pressed="true"] {
+        background: var(--ink);
+        border-color: var(--ink);
+        color: var(--paper);
+      }
+
+      
+      .progress-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+        font-size: 13px;
+        color: var(--ink-soft);
+        font-weight: 600;
+      }
+      .bar {
+        flex: 1;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--paper-deep);
+        border: 1px solid var(--line);
+        overflow: hidden;
+      }
+      .bar > div {
+        height: 100%;
+        width: 0%;
+        background: var(--accent);
+        border-radius: 999px;
+        transition: width 0.35s ease;
+      }
+      .tally { white-space: nowrap; }
+      .tally .k { color: var(--good); }
+      .tally .u { color: var(--mid); }
+      .tally .d { color: var(--bad); }
+
+      
+      .stage { perspective: 1400px; }
+      .card {
+        position: relative;
+        width: 100%;
+        height: min(58vh, 430px);
+        min-height: 320px;
+        transform-style: preserve-3d;
+        transition: transform 0.55s cubic-bezier(0.35, 0.15, 0.25, 1);
+        cursor: pointer;
+        outline: none;
+        border-radius: var(--radius);
+      }
+      .card.flipped { transform: rotateY(180deg); }
+      .card:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
+      .face {
+        position: absolute;
+        inset: 0;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        border-radius: var(--radius);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 28px 24px;
+        text-align: center;
+        overflow: hidden;
+      }
+      .face.front { background: var(--card); }
+      .face.back {
+        background: var(--card-back);
+        transform: rotateY(180deg);
+      }
+      .face .corner {
+        position: absolute;
+        top: 16px;
+        left: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+      }
+      .face .corner-r {
+        position: absolute;
+        top: 16px;
+        right: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--ink-soft);
+      }
+      .big-kana {
+        font-family: "Noto Serif JP", serif;
+        font-weight: 900;
+        font-size: clamp(110px, 34vw, 190px);
+        line-height: 1.05;
+        color: var(--ink);
+      }
+      .big-word {
+        font-family: "Noto Serif JP", serif;
+        font-weight: 900;
+        font-size: clamp(52px, 13vw, 84px);
+        line-height: 1.2;
+        color: var(--ink);
+        word-break: keep-all;
+      }
+      .furigana {
+        font-family: "Noto Serif JP", serif;
+        font-size: clamp(22px, 6vw, 32px);
+        font-weight: 600;
+        color: var(--ink-soft);
+        line-height: 1.1;
+        margin-bottom: 8px;
+        letter-spacing: 0.08em;
+      }
+      
+
+      .furigana .m { display: inline-block; padding-top: 3px; border-top: 2px solid transparent; }
+      .furigana .m.hi { border-top-color: var(--accent); }
+      .furigana .m.drop { border-right: 2px solid var(--accent); }
+      .furigana .f-ac {
+        font-family: "Noto Sans JP", sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--accent-ink);
+        margin-left: 5px;
+        letter-spacing: 0;
+      }
+      
+      .romaji-big .back-kana { font-family: "Noto Serif JP", serif; font-weight: 900; }
+      .romaji-big {
+        font-size: clamp(44px, 11vw, 64px);
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        line-height: 1.1;
+      }
+      .reading-line {
+        font-family: "Noto Serif JP", serif;
+        font-size: clamp(22px, 6vw, 30px);
+        font-weight: 600;
+        color: var(--ink);
+        margin-top: 6px;
+      }
+      .meaning {
+        font-size: clamp(20px, 5.4vw, 26px);
+        font-weight: 700;
+        margin-top: 4px;
+      }
+      .hint-line {
+        margin-top: 14px;
+        font-size: 15px;
+        line-height: 1.55;
+        color: var(--ink-soft);
+        max-width: 34ch;
+      }
+      .hint-line .mark { color: var(--accent); font-weight: 700; }
+      .root-line {
+        margin-top: 10px;
+        font-family: "Noto Serif JP", serif;
+        font-size: clamp(26px, 6.5vw, 34px);
+        font-weight: 700;
+        line-height: 1.2;
+      }
+      .root-line .root-lbl {
+        font-family: "Noto Sans JP", sans-serif;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--accent);
+        vertical-align: middle;
+        margin-right: 10px;
+      }
+      .word-list {
+        margin-top: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .word-list .w-row { font-size: 15px; line-height: 1.45; }
+      .word-list .w-jp { font-family: "Noto Serif JP", serif; font-weight: 700; font-size: 17px; }
+      .word-list .w-kj { font-family: "Noto Serif JP", serif; font-weight: 700; font-size: 16px; color: var(--accent-ink); margin-left: 5px; }
+      .word-list .w-ro { font-weight: 600; margin-left: 7px; }
+      .word-list .w-gl { color: var(--ink-soft); margin-left: 7px; }
+      
+
+      .word-list .w-jp .m { display: inline-block; padding-top: 3px; border-top: 2px solid transparent; }
+      .word-list .w-jp .m.hi { border-top-color: var(--accent); }
+      .word-list .w-jp .m.drop { border-right: 2px solid var(--accent); }
+      .word-list .w-ac { font-size: 12px; font-weight: 700; color: var(--accent-ink); margin-left: 4px; }
+      .swatch {
+        width: min(190px, 55vw);
+        aspect-ratio: 1 / 1;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04), 0 6px 16px rgba(50, 38, 20, 0.12);
+      }
+      .swatch-word {
+        margin-top: 20px;
+        font-size: clamp(26px, 6.5vw, 34px);
+        font-weight: 700;
+      }
+      .flip-hint {
+        position: absolute;
+        bottom: 18px;
+        left: 0;
+        right: 0;
+        font-size: 12.5px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        color: var(--ink-soft);
+        text-transform: uppercase;
+      }
+      .stamp {
+        position: absolute;
+        bottom: 16px;
+        right: 18px;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 999px;
+      }
+      .stamp.known { background: var(--good-soft); color: var(--good); }
+      .stamp.unsure { background: var(--mid-soft); color: var(--mid); }
+      .stamp.dontknow { background: var(--bad-soft); color: var(--bad); }
+
+      
+      .actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+        margin-top: 16px;
+      }
+      .btn {
+        appearance: none;
+        font: inherit;
+        font-size: 15px;
+        font-weight: 700;
+        padding: 13px 10px;
+        border-radius: 12px;
+        cursor: pointer;
+        border: 1px solid var(--line);
+        background: var(--card);
+        color: var(--ink);
+      }
+      .btn:active { transform: translateY(1px); }
+      .btn.level {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 52px;
+        padding: 0 6px;
+      }
+      .btn.level .glyph { font-size: 24px; line-height: 1; font-weight: 900; }
+      .btn.dontknow { border-color: var(--red-fill); background: var(--red-fill); color: var(--red-fill-ink); }
+      .btn.unsure { border-color: var(--yellow-fill); background: var(--yellow-fill); color: var(--yellow-fill-ink); }
+      .btn.known-solid { border-color: var(--green-fill); background: var(--green-fill); color: var(--green-fill-ink); }
+      .btn.known { border-color: var(--good); color: var(--good); background: var(--good-soft); }
+      .btn:disabled { opacity: 0.45; cursor: default; }
+      .navrow {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      .navrow .btn { flex: 1; font-size: 14px; height: 52px; padding: 0 10px; font-weight: 600; color: var(--ink-soft); display: flex; align-items: center; justify-content: center; }
+      .keys-hint {
+        margin-top: 14px;
+        font-size: 12px;
+        color: var(--ink-soft);
+        text-align: center;
+      }
+      @media (hover: none) { .keys-hint { display: none; } }
+
+      
+      .done {
+        border: 1px solid var(--line);
+        background: var(--card);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 36px 26px;
+        text-align: center;
+      }
+      .done .big {
+        font-family: "Noto Serif JP", serif;
+        font-size: 54px;
+        font-weight: 900;
+        color: var(--accent);
+        line-height: 1.1;
+      }
+      .done h2 { margin: 12px 0 6px; font-size: 22px; }
+      .done p { margin: 0 0 20px; color: var(--ink-soft); font-size: 15px; line-height: 1.55; }
+      .done .row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+      .done .btn { padding: 12px 20px; }
+      .hidden { display: none !important; }
+
+      
+      .build-stamp {
+        margin-top: 32px;
+        text-align: center;
+        font-size: 12px;
+        color: var(--ink-soft);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .card { transition: none; }
+        .bar > div { transition: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <div class="head">
+        <h1><span class="jp">かな</span> Flashcards</h1>
+        <div class="sub" id="headSub">Tap a card to flip it.<br />Front: the kana. Back: sound, root &amp; words.</div>
+      </div>
+
+      <div class="controls">
+        <div class="seg" role="group" aria-label="Deck">
+          <button type="button" data-deck="hiragana" aria-pressed="true" aria-label="Hiragana deck"><span class="jp">あ</span></button>
+          <button type="button" data-deck="katakana" aria-pressed="false" aria-label="Katakana deck"><span class="jp">ア</span></button>
+          <button type="button" data-deck="words" aria-pressed="false">Travel</button>
+          <button type="button" data-deck="colors" aria-pressed="false">Colors</button>
+        </div>
+        <div class="rowline" id="rowFilters" role="group" aria-label="Rows"></div>
+        <div class="toggles">
+          <button type="button" class="tgl" id="dakutenToggle" aria-pressed="false" aria-label="Add voiced and semi-voiced kana (dakuten and handakuten)">パ</button>
+          <button type="button" class="tgl" id="reverseToggle" aria-pressed="false" aria-label="Reverse: sound first">Reverse</button>
+          <button type="button" class="tgl" id="shuffleToggle" aria-pressed="false">Shuffle</button>
+        </div>
+      </div>
+
+      <div class="progress-row">
+        <span id="counter">Card 1 of 46</span>
+        <div class="bar" aria-hidden="true"><div id="barFill"></div></div>
+        <span class="tally"><span class="d" id="dontknowCount">✗ 0</span> · <span class="u" id="unsureCount">○ 0</span> · <span class="k" id="knownCount">✓ 0</span></span>
+      </div>
+
+      <div id="playArea">
+        <div class="stage">
+          <div class="card" id="card" tabindex="0" role="button" aria-label="Flashcard. Activate to flip.">
+            <div class="face front">
+              <span class="corner" id="frontCorner">Hiragana · Vowels</span>
+              <span class="corner-r" id="frontCornerR"></span>
+              <div id="frontFurigana" class="furigana hidden" aria-hidden="true"></div>
+              <div id="frontMain" class="big-kana">あ</div>
+              <div class="flip-hint">Tap to flip</div>
+            </div>
+            <div class="face back">
+              <span class="corner" id="backCorner">Hiragana · Vowels</span>
+              <span class="corner-r" id="backCornerR"></span>
+              <div id="backMain" class="romaji-big">a</div>
+              <div id="backSub" class="reading-line"></div>
+              <div id="backHint" class="hint-line"></div>
+              <div id="backRoot" class="root-line hidden"></div>
+              <div id="backWords" class="word-list hidden"></div>
+              <div id="backSwatch" class="swatch hidden" aria-hidden="true"></div>
+              <div id="backWord" class="swatch-word hidden"></div>
+              <div id="backReading" class="reading-line hidden"></div>
+              <div class="flip-hint">Tap to flip back</div>
+              <span class="stamp hidden" id="stamp"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="btn level dontknow" id="dontknowBtn" aria-label="Really don't remember"><span class="glyph" aria-hidden="true">✗</span></button>
+          <button type="button" class="btn level unsure" id="unsureBtn" aria-label="Kind of not sure"><span class="glyph" aria-hidden="true">○</span></button>
+          <button type="button" class="btn level known-solid" id="knownBtn" aria-label="Got it"><span class="glyph" aria-hidden="true">✓</span></button>
+        </div>
+        <div class="navrow">
+          <button type="button" class="btn" id="prevBtn">← Prev</button>
+          <button type="button" class="btn" id="flipBtn">Flip card</button>
+          <button type="button" class="btn" id="nextBtn">Next →</button>
+        </div>
+        <p class="keys-hint">Space flips · ← → move · 1 = really don't remember · 2 = kind of not sure · 3 = got it</p>
+      </div>
+
+      <div class="done hidden" id="doneArea">
+        <div class="big">おつかれさま</div>
+        <h2>Deck complete</h2>
+        <p id="doneText"></p>
+        <div class="row">
+          <button type="button" class="btn dontknow hidden" id="reviewBtn">Review the tricky ones</button>
+          <button type="button" class="btn known" id="restartBtn">Restart deck</button>
+        </div>
+      </div>
+
+      
+
+
+
+      <div class="build-stamp">Build 6 (2026-10-22) · Published</div>
+    </main>
+
+    <script>
+      
+      
+      var BASIC = [
+        ["あ","ア","a","Vowels","An <span class='mark'>A</span>pple with a stem — find the A inside it."],
+        ["い","イ","i","Vowels","Two <span class='mark'>ee</span>ls hanging side by side."],
+        ["う","ウ","u","Vowels","A boxer getting punched in the stomach: “<span class='mark'>Oo</span>ph!”"],
+        ["え","エ","e","Vowels","An <span class='mark'>e</span>nergetic ninja running downhill."],
+        ["お","オ","o","Vowels","A golf ball <span class='mark'>o</span>n a tee, about to be hit."],
+        ["か","カ","ka","K row","A <span class='mark'>ka</span>rate chop cutting through the line."],
+        ["き","キ","ki","K row","A <span class='mark'>key</span> — the teeth hang below the line."],
+        ["く","ク","ku","K row","The beak of a <span class='mark'>cu</span>ckoo bird, wide open."],
+        ["け","ケ","ke","K row","A wooden <span class='mark'>ke</span>g with its hoops."],
+        ["こ","コ","ko","K row","Two <span class='mark'>ko</span>i fish swimming in a square pond corner."],
+        ["さ","サ","sa","S row","A <span class='mark'>sa</span>rdine jumping out of the water."],
+        ["し","シ","shi","S row","A fishing hook dropped into the sea — <span class='mark'>shi</span> is the hook."],
+        ["す","ス","su","S row","A <span class='mark'>su</span>per loop-the-loop on a swing."],
+        ["せ","セ","se","S row","A <span class='mark'>se</span>nsai (teacher) with one eye winking."],
+        ["そ","ソ","so","S row","A zigzag stitch <span class='mark'>sew</span>n into fabric."],
+        ["た","タ","ta","T row","<span class='mark'>Ta</span> — a kite tangled in a “ta” shape."],
+        ["ち","チ","chi","T row","A <span class='mark'>chee</span>rleader's pom-pom flying off its handle."],
+        ["つ","ツ","tsu","T row","A <span class='mark'>tsu</span>nami wave curling over."],
+        ["て","テ","te","T row","A hand — <span class='mark'>te</span> means hand in Japanese."],
+        ["と","ト","to","T row","A <span class='mark'>to</span>e with a nail sticking out of it."],
+        ["な","ナ","na","N row","A <span class='mark'>na</span>vigator looking through a knot of ropes."],
+        ["に","ニ","ni","N row","A <span class='mark'>nee</span>dle and thread — and に looks like a knee, too."],
+        ["ぬ","ヌ","nu","N row","<span class='mark'>Noo</span>dles tangled up with chopsticks."],
+        ["ね","ネ","ne","N row","A <span class='mark'>ne</span>ko (cat) curled around its tail."],
+        ["の","ノ","no","N row","One big loop — the “<span class='mark'>no</span>” sign's circle."],
+        ["は","ハ","ha","H row","A man laughing: “<span class='mark'>Ha</span> ha!” (Read as <em>wa</em> when it's the topic particle.)"],
+        ["ひ","ヒ","hi","H row","A <span class='mark'>hee</span>l of a foot, toes pointing up."],
+        ["ふ","フ","fu","H row","Mount <span class='mark'>Fu</span>ji with snow blowing off the top."],
+        ["へ","ヘ","he","H row","A hill pointing the way — “<span class='mark'>he</span>ad that way!” (Read as <em>e</em> as a particle.)"],
+        ["ほ","ホ","ho","H row","A <span class='mark'>ho</span>e leaning against a fence post."],
+        ["ま","マ","ma","M row","A <span class='mark'>ma</span>sk with loops for the ears."],
+        ["み","ミ","mi","M row","Three lines racing — number three is <span class='mark'>mi</span>."],
+        ["む","ム","mu","M row","A cow's face: “<span class='mark'>Moo</span>!”"],
+        ["め","メ","me","M row","An eye with makeup — <span class='mark'>me</span> means eye in Japanese."],
+        ["も","モ","mo","M row","A fish hook catching <span class='mark'>mo</span>re fish."],
+        ["や","ヤ","ya","Y row","An archer's arrow — <span class='mark'>ya</span> means arrow."],
+        ["ゆ","ユ","yu","Y row","A <span class='mark'>u</span>nique fish swimming upstream."],
+        ["よ","ヨ","yo","Y row","A <span class='mark'>yo</span>ga master sitting cross-legged."],
+        ["ら","ラ","ra","R row","A <span class='mark'>ra</span>bbit's ear flopped over."],
+        ["り","リ","ri","R row","Two <span class='mark'>ree</span>ds bending in the river."],
+        ["る","ル","ru","R row","Two <span class='mark'>roo</span>ts digging into the ground."],
+        ["れ","レ","re","R row","A <span class='mark'>re</span>treat — a soldier kneeling down."],
+        ["ろ","ロ","ro","R row","A <span class='mark'>ro</span>ad with no loop in it (that's what makes it different from る)."],
+        ["わ","ワ","wa","W row","A <span class='mark'>wa</span>sp stinging a swan's neck."],
+        ["を","ヲ","wo","W row","A bowler <span class='mark'>wo</span>bbing as he throws. Almost always read “o” — it marks the thing you're acting on."],
+        ["ん","ン","n","W row","One stroke, one sound: the lone <span class='mark'>n</span>. No vowel follows it."]
+      ];
+      var DAKUTEN = [
+        ["が","ガ","ga","G row","か (ka) with two small strokes — the marks add voice: <span class='mark'>ga</span>."],
+        ["ぎ","ギ","gi","G row","き (ki) voiced → <span class='mark'>gi</span>."],
+        ["ぐ","グ","gu","G row","く (ku) voiced → <span class='mark'>gu</span>."],
+        ["げ","ゲ","ge","G row","け (ke) voiced → <span class='mark'>ge</span>."],
+        ["ご","ゴ","go","G row","こ (ko) voiced → <span class='mark'>go</span>."],
+        ["ざ","ザ","za","Z row","さ (sa) voiced → <span class='mark'>za</span>."],
+        ["じ","ジ","ji","Z row","し (shi) voiced → <span class='mark'>ji</span>."],
+        ["ず","ズ","zu","Z row","す (su) voiced → <span class='mark'>zu</span>."],
+        ["ぜ","ゼ","ze","Z row","せ (se) voiced → <span class='mark'>ze</span>."],
+        ["ぞ","ゾ","zo","Z row","そ (so) voiced → <span class='mark'>zo</span>."],
+        ["だ","ダ","da","D row","た (ta) voiced → <span class='mark'>da</span>."],
+        ["ぢ","ヂ","ji","D row","ち (chi) voiced → <span class='mark'>ji</span> (rarely used; じ is usual)."],
+        ["づ","ヅ","zu","D row","つ (tsu) voiced → <span class='mark'>zu</span> (rarely used; ず is usual)."],
+        ["で","デ","de","D row","て (te) voiced → <span class='mark'>de</span>."],
+        ["ど","ド","do","D row","と (to) voiced → <span class='mark'>do</span>."],
+        ["ば","バ","ba","B row","は (ha) voiced → <span class='mark'>ba</span>."],
+        ["び","ビ","bi","B row","ひ (hi) voiced → <span class='mark'>bi</span>."],
+        ["ぶ","ブ","bu","B row","ふ (fu) voiced → <span class='mark'>bu</span>."],
+        ["べ","ベ","be","B row","へ (he) voiced → <span class='mark'>be</span>."],
+        ["ぼ","ボ","bo","B row","ほ (ho) voiced → <span class='mark'>bo</span>."],
+        ["ぱ","パ","pa","P row","は (ha) with a small circle (handakuten) → <span class='mark'>pa</span>."],
+        ["ぴ","ピ","pi","P row","ひ (hi) with a circle → <span class='mark'>pi</span>."],
+        ["ぷ","プ","pu","P row","ふ (fu) with a circle → <span class='mark'>pu</span>."],
+        ["ぺ","ペ","pe","P row","へ (he) with a circle → <span class='mark'>pe</span>."],
+        ["ぽ","ポ","po","P row","ほ (ho) with a circle → <span class='mark'>po</span>."]
+      ];
+      
+      
+      
+      
+      
+      
+      
+      var KANA_EXTRA = {
+        "あ": { rh: "安", rk: "阿", wh: [["あさ","asa","morning"],["あめ","ame","rain"],["あい","ai","love"]], wk: [["アメリカ","amerika","America"],["アイス","aisu","ice cream"],["アニメ","anime","anime"]] },
+        "い": { rh: "以", rk: "伊", wh: [["いぬ","inu","dog"],["いえ","ie","house"],["いす","isu","chair"]], wk: [["イギリス","igirisu","England / UK"],["イス","isu","chair"],["イチゴ","ichigo","strawberry"]] },
+        "う": { rh: "宇", rk: "宇", wh: [["うみ","umi","sea"],["うた","uta","song"],["うえ","ue","above / up"]], wk: [["ウイスキー","uisukii","whisky"],["ウール","uuru","wool"],["ウインドウ","uindou","window"]] },
+        "え": { rh: "衣", rk: "江", wh: [["えき","eki","station"],["えんぴつ","enpitsu","pencil"],["えいご","eigo","English (language)"]], wk: [["エアコン","eakon","air conditioner"],["エレベーター","erebeetaa","elevator"],["エネルギー","enerugii","energy"]] },
+        "お": { rh: "於", rk: "於", wh: [["おかね","okane","money"],["おと","oto","sound"],["おおきい","ookii","big"]], wk: [["オレンジ","orenji","orange"],["オフィス","ofisu","office"],["オートバイ","ootobai","motorcycle"]] },
+        "か": { rh: "加", rk: "加", wh: [["かぜ","kaze","wind"],["かばん","kaban","bag"],["かみ","kami","paper"]], wk: [["カメラ","kamera","camera"],["カード","kaado","card"],["カレー","karee","curry"]] },
+        "き": { rh: "幾・機", rk: "幾・機", wh: [["きのこ","kinoko","mushroom"],["きって","kitte","postage stamp"],["きいろ","kiiro","yellow"]], wk: [["キッチン","kitchin","kitchen"],["キロ","kiro","kilo"],["キー","kii","key"]] },
+        "く": { rh: "久", rk: "久", wh: [["くも","kumo","cloud"],["くすり","kusuri","medicine"],["くち","kuchi","mouth"]], wk: [["クッキー","kukkii","cookie"],["クラス","kurasu","class"],["クーラー","kuuraa","air conditioner"]] },
+        "け": { rh: "計", rk: "介", wh: [["けさ","kesa","this morning"],["とけい","tokei","clock / watch"],["けが","kega","injury"]], wk: [["ケーキ","keeki","cake"],["ケータイ","keetai","mobile phone"],["ケチャップ","kechappu","ketchup"]] },
+        "こ": { rh: "己", rk: "己", wh: [["ここ","koko","here"],["こめ","kome","rice (uncooked)"],["こども","kodomo","child"]], wk: [["コーヒー","koohii","coffee"],["コンビニ","konbini","convenience store"],["コート","kooto","coat"]] },
+        "さ": { rh: "左", rk: "散", wh: [["さかな","sakana","fish"],["さくら","sakura","cherry blossom"],["さむい","samui","cold (weather)"]], wk: [["サッカー","sakkaa","soccer"],["サラダ","sarada","salad"],["サンドイッチ","sandoitchi","sandwich"]] },
+        "し": { rh: "之", rk: "之", wh: [["しか","shika","deer"],["すし","sushi","sushi"],["しお","shio","salt"]], wk: [["シャツ","shatsu","shirt"],["シャワー","shawaa","shower"],["シーツ","shiitsu","bed sheet"]] },
+        "す": { rh: "寸", rk: "須", wh: [["すし","sushi","sushi"],["すいか","suika","watermelon"],["すき","suki","liked / favorite"]], wk: [["スーパー","suupaa","supermarket"],["スプーン","supuun","spoon"],["スキー","sukii","skiing"]] },
+        "せ": { rh: "世", rk: "世", wh: [["せんせい","sensei","teacher"],["せかい","sekai","world"],["せなか","senaka","back (of the body)"]], wk: [["セーター","seetaa","sweater"],["センター","sentaa","center"],["セミナー","seminaa","seminar"]] },
+        "そ": { rh: "曽", rk: "曽", wh: [["そら","sora","sky"],["そと","soto","outside"],["そば","soba","buckwheat noodles"]], wk: [["ソファ","sofaa","sofa"],["ソフト","sofuto","soft-serve ice cream"],["ソース","soosu","sauce"]] },
+        "た": { rh: "太", rk: "多", wh: [["たべもの","tabemono","food"],["たまご","tamago","egg"],["たのしい","tanoshii","fun"]], wk: [["タクシー","takushii","taxi"],["タオル","taoru","towel"],["タイヤ","taiya","tire"]] },
+        "ち": { rh: "知", rk: "千", wh: [["ちず","chizu","map"],["ちち","chichi","father"],["ちかい","chikai","near / close"]], wk: [["チーズ","chiizu","cheese"],["チケット","chiketto","ticket"],["チョコレート","chokoreeto","chocolate"]] },
+        "つ": { rh: "川", rk: "川・州", wh: [["つき","tsuki","moon"],["つくえ","tsukue","desk"],["つめたい","tsumetai","cold (to touch)"]], wk: [["ツアー","tsuaa","tour"],["ツナ","tsuna","tuna"],["スーツ","suutsu","suit"]] },
+        "て": { rh: "天", rk: "天", wh: [["てがみ","tegami","letter"],["てんき","tenki","weather"],["てら","tera","temple"]], wk: [["テレビ","terebi","TV"],["テーブル","teeburu","table"],["テスト","tesuto","test"]] },
+        "と": { rh: "止", rk: "止", wh: [["とり","tori","bird"],["とけい","tokei","clock / watch"],["ともだち","tomodachi","friend"]], wk: [["トイレ","toire","restroom"],["トマト","tomato","tomato"],["トンネル","tonneru","tunnel"]] },
+        "な": { rh: "奈", rk: "奈", wh: [["なつ","natsu","summer"],["なまえ","namae","name"],["なか","naka","inside"]], wk: [["ナイフ","naifu","knife"],["ナプキン","napukin","napkin"],["バナナ","banana","banana"]] },
+        "に": { rh: "仁", rk: "仁・二", wh: [["にく","niku","meat"],["にほん","nihon","Japan"],["にわ","niwa","garden"]], wk: [["ニュース","nyuusu","news"],["ニット","nitto","knitwear"],["ユニフォーム","yunifoomu","uniform"]] },
+        "ぬ": { rh: "奴", rk: "奴", wh: [["ぬの","nuno","cloth"],["いぬ","inu","dog"],["ぬるい","nurui","lukewarm"]], wk: [["ヌードル","nuudoru","noodles"],["カヌー","kanuu","canoe"],["ヌルヌル","nurunuru","slimy"]] },
+        "ね": { rh: "祢", rk: "祢", wh: [["ねこ","neko","cat"],["ねつ","netsu","fever"],["おかね","okane","money"]], wk: [["ネクタイ","nekutai","necktie"],["ネット","netto","internet / net"],["エネルギー","enerugii","energy"]] },
+        "の": { rh: "乃", rk: "乃", wh: [["のみもの","nomimono","drink"],["のり","nori","seaweed"],["のど","nodo","throat"]], wk: [["ノート","nooto","notebook"],["ピアノ","piano","piano"],["ノック","nokku","knock"]] },
+        "は": { rh: "波", rk: "八", wh: [["はな","hana","flower"],["はし","hashi","chopsticks"],["はる","haru","spring"]], wk: [["ハンバーガー","hanbaagaa","hamburger"],["ハム","hamu","ham"],["ハンドバッグ","handobaggu","handbag"]] },
+        "ひ": { rh: "比", rk: "比", wh: [["ひる","hiru","daytime"],["ひこうき","hikouki","airplane"],["ひだり","hidari","left"]], wk: [["ヒーロー","hiiroo","hero"],["ヒント","hinto","hint"],["ヒール","hiiru","heel (shoe)"]] },
+        "ふ": { rh: "不", rk: "不", wh: [["ふね","fune","boat / ship"],["ふゆ","fuyu","winter"],["ふく","fuku","clothes"]], wk: [["フランス","furansu","France"],["フルーツ","furuutsu","fruit"],["フォーク","fooku","fork"]] },
+        "へ": { rh: "部", rk: "部", wh: [["へや","heya","room"],["へん","hen","strange"],["へび","hebi","snake"]], wk: [["ヘリコプター","herikoputaa","helicopter"],["ヘアー","heaa","hair"],["ヘッドホン","heddohon","headphones"]] },
+        "ほ": { rh: "保", rk: "保", wh: [["ほん","hon","book"],["ほし","hoshi","star"],["ほのお","honoo","flame"]], wk: [["ホテル","hoteru","hotel"],["ホーム","hoomu","platform / home"],["ホットケーキ","hottokeeki","pancakes"]] },
+        "ま": { rh: "末", rk: "末", wh: [["まち","machi","town"],["まど","mado","window"],["まいにち","mainichi","every day"]], wk: [["マンション","manshon","apartment"],["マスク","masuku","mask"],["ママ","mama","mom"]] },
+        "み": { rh: "美", rk: "三", wh: [["みず","mizu","water"],["みせ","mise","shop"],["みみ","mimi","ear"]], wk: [["ミルク","miruku","milk"],["ミーティング","miitingu","meeting"],["ミックス","mikkusu","mix"]] },
+        "む": { rh: "武", rk: "牟", wh: [["むし","mushi","insect"],["むら","mura","village"],["むずかしい","muzukashii","difficult"]], wk: [["ムード","muudo","mood"],["チーム","chiimu","team"],["ルーム","ruumu","room"]] },
+        "め": { rh: "女", rk: "女", wh: [["めがね","megane","glasses"],["あめ","ame","rain / candy"],["めし","meshi","meal"]], wk: [["メール","meeru","email"],["メニュー","menyuu","menu"],["メガネ","megane","glasses"]] },
+        "も": { rh: "毛", rk: "毛", wh: [["もも","momo","peach"],["もん","mon","gate"],["もっと","motto","more"]], wk: [["モデル","moderu","model"],["モーター","mootaa","motor"],["モノレール","monoreeru","monorail"]] },
+        "や": { rh: "也", rk: "也", wh: [["やま","yama","mountain"],["やさい","yasai","vegetables"],["やすみ","yasumi","rest / holiday"]], wk: [["ダイヤ","daiya","diamond"],["イヤホン","iyahon","earphones"],["ワイヤレス","waiyaresu","wireless"]] },
+        "ゆ": { rh: "由", rk: "由", wh: [["ゆき","yuki","snow"],["ゆめ","yume","dream"],["ゆうめい","yuumei","famous"]], wk: [["ユニフォーム","yunifoomu","uniform"],["ユース","yuusu","youth"],["ユニット","yunitto","unit"]] },
+        "よ": { rh: "与", rk: "與", wh: [["よる","yoru","night"],["よん","yon","four"],["よい","yoi","good"]], wk: [["ヨーロッパ","yooroppa","Europe"],["ヨガ","yoga","yoga"],["ヨット","yotto","yacht"]] },
+        "ら": { rh: "良", rk: "良", wh: [["らいねん","rainen","next year"],["そら","sora","sky"],["から","kara","from"]], wk: [["ラジオ","rajio","radio"],["ラーメン","raamen","ramen"],["ライオン","raion","lion"]] },
+        "り": { rh: "利", rk: "利", wh: [["りんご","ringo","apple"],["りょうり","ryouri","cooking / dish"],["りす","risu","squirrel"]], wk: [["リスト","risuto","list"],["リボン","ribon","ribbon"],["リモコン","rimokon","remote control"]] },
+        "る": { rh: "留", rk: "流", wh: [["まる","maru","circle"],["はる","haru","spring"],["さる","saru","monkey"]], wk: [["ルール","ruuru","rule"],["ルーム","ruumu","room"],["ボール","booru","ball"]] },
+        "れ": { rh: "礼", rk: "礼", wh: [["れんしゅう","renshuu","practice"],["これ","kore","this (one)"],["れもん","remon","lemon"]], wk: [["レストラン","resutoran","restaurant"],["レモン","remon","lemon"],["レポート","repooto","report"]] },
+        "ろ": { rh: "呂", rk: "呂", wh: [["ろうそく","rousoku","candle"],["いろ","iro","color"],["しろ","shiro","white"]], wk: [["ロボット","robotto","robot"],["ロシア","roshia","Russia"],["ロープ","roopu","rope"]] },
+        "わ": { rh: "和", rk: "和", wh: [["わたし","watashi","I / me"],["わに","wani","crocodile"],["わらう","warau","to laugh / smile"]], wk: [["ワイン","wain","wine"],["ワイシャツ","waishatsu","dress shirt"],["ワンピース","wanpiisu","dress (one-piece)"]] },
+        "を": { rh: "遠", rk: "乎", wh: [["ほんを よむ","hon wo yomu","read a book"],["みずを のむ","mizu wo nomu","drink water"],["てがみを かく","tegami wo kaku","write a letter"]], wk: [["ヲタク","wotaku","otaku / geek (playful spelling)"],["ヲタ芸","wotagei","otaku cheering dance"],["～ヲ","wo","the object particle, in old-style text"]] },
+        "ん": { rh: "无・無", rk: "尓・无・無", wh: [["こんばんは","konbanwa","good evening"],["ほん","hon","book"],["せんせい","sensei","teacher"]], wk: [["パン","pan","bread"],["ペン","pen","pen"],["コンビニ","konbini","convenience store"]] },
+        "が": { rh: "加", rk: "加", wh: [["がくせい","gakusei","student"],["がっこう","gakkou","school"],["めがね","megane","glasses"]], wk: [["ガラス","garasu","glass"],["ガイド","gaido","guide"],["ガソリン","gasorin","gasoline"]] },
+        "ぎ": { rh: "幾・機", rk: "幾・機", wh: [["ぎんこう","ginkou","bank"],["かぎ","kagi","key"],["おにぎり","onigiri","rice ball"]], wk: [["ギター","gitaa","guitar"],["ギフト","gifuto","gift"],["エネルギー","enerugii","energy"]] },
+        "ぐ": { rh: "久", rk: "久", wh: [["かぐ","kagu","furniture"],["どうぐ","dougu","tool"],["まぐろ","maguro","tuna"]], wk: [["グループ","guruupu","group"],["グローブ","guroobu","glove"],["グラム","guramu","gram"]] },
+        "げ": { rh: "計", rk: "介", wh: [["げんき","genki","healthy / energetic"],["げつようび","getsuyoubi","Monday"],["げんかん","genkan","entryway"]], wk: [["ゲーム","geemu","game"],["ゲスト","gesuto","guest"],["ゲート","geeto","gate"]] },
+        "ご": { rh: "己", rk: "己", wh: [["ごはん","gohan","rice / meal"],["ごご","gogo","afternoon"],["えいご","eigo","English (language)"]], wk: [["ゴルフ","gorufu","golf"],["ゴール","gooru","goal"],["ゴミ","gomi","trash"]] },
+        "ざ": { rh: "左", rk: "散", wh: [["ざっし","zasshi","magazine"],["ざんねん","zannen","too bad / a pity"],["かざん","kazan","volcano"]], wk: [["デザイン","dezain","design"],["デザート","dezaato","dessert"],["ザーザー","zaazaa","pouring (rain sound)"]] },
+        "じ": { rh: "之", rk: "之", wh: [["じかん","jikan","time"],["じぶん","jibun","oneself"],["じどうしゃ","jidousha","car"]], wk: [["ジーンズ","jiinzu","jeans"],["ジム","jimu","gym"],["ページ","peeji","page"]] },
+        "ず": { rh: "寸", rk: "須", wh: [["みず","mizu","water"],["かず","kazu","number"],["ずぼん","zubon","trousers"]], wk: [["ズボン","zubon","trousers"],["チーズ","chiizu","cheese"],["シーズン","shiizun","season"]] },
+        "ぜ": { rh: "世", rk: "世", wh: [["ぜんぶ","zenbu","all / everything"],["ぜったい","zettai","definitely"],["かぜ","kaze","wind / a cold"]], wk: [["ゼミ","zemi","seminar"],["ゼリー","zerii","jelly"],["ゼロ","zero","zero"]] },
+        "ぞ": { rh: "曽", rk: "曽", wh: [["ぞう","zou","elephant"],["かぞく","kazoku","family"],["どうぞ","douzo","please / go ahead"]], wk: [["ゾーン","zoon","zone"],["ゾンビ","zonbi","zombie"],["リゾート","rizooto","resort"]] },
+        "だ": { rh: "太", rk: "多", wh: [["だれ","dare","who"],["だいがく","daigaku","university"],["からだ","karada","body"]], wk: [["ダンス","dansu","dance"],["ダウン","daun","down jacket"],["ダイヤ","daiya","diamond"]] },
+        "ぢ": { rh: "知", rk: "千", wh: [["はなぢ","hanaji","nosebleed"],["ちぢむ","chijimu","to shrink"],["こぢんまり","kojinmari","small and neat"]], wk: [["ラヂオ","rajio","radio (old spelling)"],["ヂーゼル","jiizeru","diesel (old spelling)"],["ヂャズ","jazzu","jazz (old spelling)"]] },
+        "づ": { rh: "川", rk: "川・州", wh: [["つづく","tsuzuku","to continue"],["てづくり","tezukuri","handmade"],["きづく","kizuku","to notice"]], wk: [["ヅラ","zura","wig (slang)"],["ヅカ","zuka","Takarazuka (fan nickname)"],["テヅカ","tezuka","Tezuka (surname)"]] },
+        "で": { rh: "天", rk: "天", wh: [["でんしゃ","densha","train"],["でんわ","denwa","telephone"],["でぐち","deguchi","exit"]], wk: [["デパート","depaato","department store"],["デート","deeto","date (outing)"],["デスク","desuku","desk"]] },
+        "ど": { rh: "止", rk: "止", wh: [["どうぶつ","doubutsu","animal"],["どようび","doyoubi","Saturday"],["まど","mado","window"]], wk: [["ドア","doa","door"],["ドライブ","doraibu","drive"],["ドラマ","dorama","TV drama"]] },
+        "ば": { rh: "波", rk: "八", wh: [["ばんごはん","bangohan","dinner"],["かばん","kaban","bag"],["ことば","kotoba","word / language"]], wk: [["バス","basu","bus"],["バナナ","banana","banana"],["バター","bataa","butter"]] },
+        "び": { rh: "比", rk: "比", wh: [["びょういん","byouin","hospital"],["びじゅつかん","bijutsukan","art museum"],["たび","tabi","trip / journey"]], wk: [["ビール","biiru","beer"],["ビル","biru","building"],["ビデオ","bideo","video"]] },
+        "ぶ": { rh: "不", rk: "不", wh: [["ぶんぼうぐ","bunbougu","stationery"],["ぶた","buta","pig"],["しんぶん","shinbun","newspaper"]], wk: [["ブーツ","buutsu","boots"],["ブログ","burogu","blog"],["ブラウス","burausu","blouse"]] },
+        "べ": { rh: "部", rk: "部", wh: [["べんきょう","benkyou","study"],["べんり","benri","convenient"],["たべもの","tabemono","food"]], wk: [["ベッド","beddo","bed"],["ベルト","beruto","belt"],["ベーコン","beekon","bacon"]] },
+        "ぼ": { rh: "保", rk: "保", wh: [["ぼうし","boushi","hat"],["ぼく","boku","I / me (male)"],["ぼんさい","bonsai","bonsai"]], wk: [["ボール","booru","ball"],["ボタン","botan","button"],["ボランティア","borantia","volunteer"]] },
+        "ぱ": { rh: "波", rk: "八", wh: [["かっぱ","kappa","raincoat"],["いっぱい","ippai","full / a lot"],["やっぱり","yappari","as expected"]], wk: [["パン","pan","bread"],["パーティー","paatii","party"],["パソコン","pasokon","computer"]] },
+        "ぴ": { rh: "比", rk: "比", wh: [["ぴかぴか","pikapika","sparkling"],["えんぴつ","enpitsu","pencil"],["ぴったり","pittari","a perfect fit"]], wk: [["ピンク","pinku","pink"],["ピアノ","piano","piano"],["ピザ","piza","pizza"]] },
+        "ぷ": { rh: "不", rk: "不", wh: [["てんぷら","tenpura","tempura"],["さんぷん","sanpun","three minutes"],["ぷりぷり","puripuri","plump / springy"]], wk: [["プール","puuru","pool"],["プレゼント","purezento","present / gift"],["プリン","purin","pudding"]] },
+        "ぺ": { rh: "部", rk: "部", wh: [["ぺらぺら","perapera","fluent (speaking)"],["ぺこぺこ","pekopeko","very hungry"],["ぺったんこ","pettanko","flat"]], wk: [["ペン","pen","pen"],["ページ","peeji","page"],["ペット","petto","pet"]] },
+        "ぽ": { rh: "保", rk: "保", wh: [["ぽかぽか","pokapoka","pleasantly warm"],["さんぽ","sanpo","a walk / stroll"],["ぽい","poi","looks like / -ish"]], wk: [["ポスト","posuto","mailbox"],["ポケット","poketto","pocket"],["ポスター","posutaa","poster"]] }
+      };
+      
+      
+      
+      
+      
+      
+      var WORD_KANJI = {
+        "あさ":"朝","あめ":"雨","あい":"愛","いぬ":"犬","いえ":"家","いす":"椅子","うみ":"海","うた":"歌","うえ":"上","えき":"駅","えんぴつ":"鉛筆","えいご":"英語","おかね":"お金","おと":"音","おおきい":"大きい","かぜ":"風","かばん":"鞄","かみ":"紙","きって":"切手","きいろ":"黄色","くも":"雲","くすり":"薬","くち":"口","けさ":"今朝","とけい":"時計","けが":"怪我","こめ":"米","こども":"子ども","さかな":"魚","さくら":"桜","さむい":"寒い","しか":"鹿","すし":"寿司","しお":"塩","すいか":"西瓜","すき":"好き","せんせい":"先生","せかい":"世界","せなか":"背中","そら":"空","そと":"外","そば":"蕎麦","たべもの":"食べ物","たまご":"卵","たのしい":"楽しい","ちず":"地図","ちち":"父","ちかい":"近い","つき":"月","つくえ":"机","つめたい":"冷たい","てがみ":"手紙","てんき":"天気","てら":"寺","とり":"鳥","ともだち":"友達","なつ":"夏","なまえ":"名前","なか":"中","にく":"肉","にほん":"日本","にわ":"庭","ぬの":"布","ぬるい":"温い","ねこ":"猫","ねつ":"熱","のみもの":"飲み物","のり":"海苔","のど":"喉","はな":"花","はし":"箸","はる":"春","ひる":"昼","ひこうき":"飛行機","ひだり":"左","ふね":"船","ふゆ":"冬","ふく":"服","へや":"部屋","へん":"変","へび":"蛇","ほん":"本","ほし":"星","ほのお":"炎","まち":"町","まど":"窓","まいにち":"毎日","みず":"水","みせ":"店","みみ":"耳","むし":"虫","むら":"村","むずかしい":"難しい","めがね":"眼鏡","めし":"飯","もも":"桃","もん":"門","やま":"山","やさい":"野菜","やすみ":"休み","ゆき":"雪","ゆめ":"夢","ゆうめい":"有名","よる":"夜","よん":"四","よい":"良い","らいねん":"来年","りょうり":"料理","まる":"丸","さる":"猿","れんしゅう":"練習","ろうそく":"蝋燭","いろ":"色","しろ":"白","わたし":"私","わに":"鰐","わらう":"笑う","ほんを よむ":"本を読む","みずを のむ":"水を飲む","てがみを かく":"手紙を書く","こんばんは":"今晩は","がくせい":"学生","がっこう":"学校","ぎんこう":"銀行","かぎ":"鍵","かぐ":"家具","どうぐ":"道具","げんき":"元気","げつようび":"月曜日","げんかん":"玄関","ごはん":"ご飯","ごご":"午後","ざっし":"雑誌","ざんねん":"残念","かざん":"火山","じかん":"時間","じぶん":"自分","じどうしゃ":"自動車","かず":"数","ぜんぶ":"全部","ぜったい":"絶対","ぞう":"象","かぞく":"家族","だれ":"誰","だいがく":"大学","からだ":"体","はなぢ":"鼻血","ちぢむ":"縮む","つづく":"続く","てづくり":"手作り","きづく":"気付く","でんしゃ":"電車","でんわ":"電話","でぐち":"出口","どうぶつ":"動物","どようび":"土曜日","ばんごはん":"晩ご飯","ことば":"言葉","びょういん":"病院","びじゅつかん":"美術館","たび":"旅","ぶんぼうぐ":"文房具","ぶた":"豚","しんぶん":"新聞","べんきょう":"勉強","べんり":"便利","ぼうし":"帽子","ぼく":"僕","ぼんさい":"盆栽","いっぱい":"一杯","てんぷら":"天ぷら","さんぷん":"三分","さんぽ":"散歩","イス":"椅子","イチゴ":"苺","メガネ":"眼鏡","テヅカ":"手塚"
+      };
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      var WORD_PITCH = {
+        "あさ":1,"あめ":1,"あい":1,"アメリカ":0,"アイス":1,"アニメ":0,
+        "いぬ":2,"いえ":2,"いす":0,"イギリス":0,"イス":0,"イチゴ":0,
+        "うみ":1,"うた":2,"うえ":0,"ウイスキー":2,"ウール":1,"ウインドウ":3,
+        "えき":1,"えんぴつ":0,"えいご":0,"エアコン":0,"エレベーター":3,"エネルギー":2,
+        "おかね":0,"おと":2,"おおきい":3,"オレンジ":2,"オフィス":1,"オートバイ":3,
+        "かぜ":0,"かばん":0,"かみ":2,"カメラ":1,"カード":1,"カレー":0,
+        "きのこ":1,"きって":0,"きいろ":0,"キッチン":1,"キロ":1,"キー":1,
+        "くも":1,"くすり":0,"くち":2,"クッキー":1,"クラス":1,"クーラー":1,
+        "けさ":1,"とけい":0,"けが":2,"ケーキ":1,"ケータイ":0,"ケチャップ":2,
+        "ここ":0,"こめ":2,"こども":0,"コーヒー":3,"コンビニ":0,"コート":1,
+        "さかな":0,"さくら":0,"さむい":2,"サッカー":1,"サラダ":1,"サンドイッチ":4,
+        "しか":0,"すし":2,"しお":2,"シャツ":1,"シャワー":1,"シーツ":1,
+        "すいか":0,"すき":2,"スーパー":1,"スプーン":2,"スキー":2,
+        "せんせい":3,"せかい":1,"せなか":0,"セーター":1,"センター":1,"セミナー":1,
+        "そら":1,"そと":1,"そば":1,"ソファ":1,"ソフト":1,"ソース":1,
+        "たべもの":3,"たまご":2,"たのしい":3,"タクシー":1,"タオル":1,"タイヤ":0,
+        "ちず":1,"ちち":1,"ちかい":2,"チーズ":1,"チケット":2,"チョコレート":3,
+        "つき":2,"つくえ":0,"つめたい":3,"ツアー":1,"ツナ":1,"スーツ":1,
+        "てがみ":0,"てんき":1,"てら":2,"テレビ":1,"テーブル":0,"テスト":1,
+        "とり":0,"ともだち":0,"トイレ":1,"トマト":1,"トンネル":0,
+        "なつ":2,"なまえ":0,"なか":1,"ナイフ":1,"ナプキン":0,"バナナ":1,
+        "にく":2,"にほん":3,"にわ":0,"ニュース":1,"ニット":1,"ユニフォーム":3,
+        "ぬの":0,"ぬるい":2,"ヌードル":1,"カヌー":1,"ヌルヌル":1,
+        "ねこ":1,"ねつ":2,"ネクタイ":1,"ネット":1,
+        "のみもの":2,"のり":2,"のど":1,"ノート":1,"ピアノ":0,"ノック":1,
+        "はな":2,"はし":1,"はる":1,"ハンバーガー":3,"ハム":1,"ハンドバッグ":4,
+        "ひる":2,"ひこうき":2,"ひだり":0,"ヒーロー":1,"ヒント":1,"ヒール":1,
+        "ふね":1,"ふゆ":2,"ふく":2,"フランス":0,"フルーツ":2,"フォーク":1,
+        "へや":2,"へん":1,"へび":1,"ヘリコプター":3,"ヘアー":1,"ヘッドホン":3,
+        "ほん":1,"ほし":0,"ほのお":0,"ホテル":1,"ホーム":1,"ホットケーキ":4,
+        "まち":2,"まど":1,"まいにち":1,"マンション":1,"マスク":1,"ママ":1,
+        "みず":0,"みせ":2,"みみ":2,"ミルク":1,"ミーティング":0,"ミックス":1,
+        "むし":0,"むら":2,"むずかしい":3,"ムード":1,"チーム":1,"ルーム":1,
+        "めがね":1,"めし":2,"メール":0,"メニュー":1,"メガネ":1,
+        "もも":0,"もん":1,"もっと":1,"モデル":1,"モーター":1,"モノレール":3,
+        "やま":2,"やさい":0,"やすみ":3,"ダイヤ":1,"イヤホン":1,"ワイヤレス":1,
+        "ゆき":2,"ゆめ":2,"ゆうめい":0,"ユース":1,"ユニット":1,
+        "よる":1,"よん":1,"よい":1,"ヨーロッパ":3,"ヨガ":1,"ヨット":1,
+        "らいねん":0,"から":0,"ラジオ":1,"ラーメン":1,"ライオン":0,
+        "りんご":0,"りょうり":1,"りす":1,"リスト":1,"リボン":1,"リモコン":0,
+        "まる":0,"さる":1,"ルール":1,"ボール":0,
+        "れんしゅう":0,"これ":0,"れもん":1,"レストラン":1,"レモン":1,"レポート":2,
+        "ろうそく":3,"いろ":2,"しろ":0,"ロボット":1,"ロシア":1,"ロープ":1,
+        "わたし":0,"わに":1,"わらう":0,"ワイン":1,"ワイシャツ":2,"ワンピース":3,
+        "ほんを":1,"よむ":1,"みずを":0,"のむ":1,"てがみを":0,"かく":1,
+        "ヲタク":0,"ヲタ芸":0,
+        "こんばんは":0,"パン":1,"ペン":1,
+        "がくせい":0,"がっこう":0,"ガラス":0,"ガイド":1,"ガソリン":0,
+        "ぎんこう":0,"かぎ":0,"おにぎり":2,"ギター":1,"ギフト":1,
+        "かぐ":1,"どうぐ":0,"まぐろ":0,"グループ":2,"グローブ":2,"グラム":1,
+        "げんき":1,"げつようび":2,"げんかん":1,"ゲーム":1,"ゲスト":1,"ゲート":1,
+        "ごはん":2,"ごご":1,"ゴルフ":1,"ゴール":1,"ゴミ":2,
+        "ざっし":0,"ざんねん":3,"かざん":1,"デザイン":2,"デザート":2,"ザーザー":1,
+        "じかん":0,"じぶん":0,"じどうしゃ":2,"ジーンズ":1,"ジム":1,"ページ":1,
+        "かず":1,"ずぼん":1,"ズボン":1,"シーズン":1,
+        "ぜんぶ":1,"ぜったい":0,"ゼミ":0,"ゼリー":1,"ゼロ":1,
+        "ぞう":1,"かぞく":1,"どうぞ":1,"ゾーン":1,"ゾンビ":1,"リゾート":2,
+        "だれ":1,"だいがく":0,"からだ":0,"ダンス":1,"ダウン":1,
+        "はなぢ":0,"ちぢむ":0,"こぢんまり":2,"ラヂオ":1,"ヂーゼル":1,"ヂャズ":1,
+        "つづく":0,"てづくり":2,"きづく":2,"ヅラ":0,"ヅカ":1,"テヅカ":2,
+        "でんしゃ":0,"でんわ":0,"でぐち":1,"デパート":2,"デート":1,"デスク":1,
+        "どうぶつ":2,"どようび":2,"ドア":1,"ドライブ":2,"ドラマ":1,
+        "ばんごはん":3,"ことば":3,"バス":1,"バター":1,
+        "びょういん":0,"びじゅつかん":3,"たび":2,"ビール":1,"ビル":1,"ビデオ":1,
+        "ぶんぼうぐ":3,"ぶた":0,"しんぶん":0,"ブーツ":1,"ブログ":0,"ブラウス":2,
+        "べんきょう":0,"べんり":1,"ベッド":1,"ベルト":0,"ベーコン":1,
+        "ぼうし":0,"ぼく":0,"ぼんさい":0,"ボタン":0,"ボランティア":2,
+        "かっぱ":0,"いっぱい":3,"やっぱり":3,"パーティー":1,"パソコン":0,
+        "ぴかぴか":1,"ぴったり":3,"ピンク":1,"ピザ":1,
+        "てんぷら":0,"さんぷん":1,"ぷりぷり":1,"プール":1,"プレゼント":2,"プリン":1,
+        "ぺらぺら":0,"ぺこぺこ":1,"ぺったんこ":3,"ペット":1,
+        "ぽかぽか":1,"さんぽ":0,"ぽい":1,"ポスト":1,"ポケット":2,"ポスター":1
+      };
+      
+      
+      var SMALL_KANA = "ゃゅょぁぃぅぇぉゎャュョァィゥェォヮ";
+      function moraeOf(s) {
+        var out = [];
+        for (var i = 0; i < s.length; i++) {
+          var ch = s.charAt(i);
+          if (i + 1 < s.length && SMALL_KANA.indexOf(s.charAt(i + 1)) !== -1) {
+            out.push(ch + s.charAt(i + 1));
+            i++;
+          } else {
+            out.push(ch);
+          }
+        }
+        return out;
+      }
+      
+      
+      
+      function pitchMarked(str, acc) {
+        var ms = moraeOf(str);
+        return ms.map(function (m, idx) {
+          var pos = idx + 1;
+          var hi = acc === 0 ? pos >= 2 : acc === 1 ? pos === 1 : (pos >= 2 && pos <= acc);
+          var cls = "m" + (hi ? " hi" : "");
+          if (hi && acc > 0 && (acc === 1 || pos === acc)) cls += " drop";
+          return "<span class='" + cls + "'>" + m + "</span>";
+        }).join("");
+      }
+      
+      
+      function pitchWordHtml(word) {
+        return word.split(" ").map(function (tok) {
+          var acc = WORD_PITCH[tok];
+          if (acc === undefined) return "<span class='w-jp'>" + tok + "</span>";
+          return "<span class='w-jp'>" + pitchMarked(tok, acc) + "</span><span class='w-ac'>[" + acc + "]</span>";
+        }).join(" ");
+      }
+      
+      
+      
+      
+      
+      var WORDS = [
+        ["地下鉄","ちかてつ","chikatetsu","subway","地 (ground) + 下 (below) + 鉄 (iron) — the iron railway under the ground. Read ちかてつ."],
+        ["新幹線","しんかんせん","shinkansen","bullet train","新 (new) + 幹線 (main line) — Japan's high-speed bullet train. Read しんかんせん."],
+        ["改札","かいさつ","kaisatsu","ticket gate","The gate where you tap or insert your ticket at a station. Read かいさつ."],
+        ["免税","めんぜい","menzei","tax-free / duty-free","免 (exempt) + 税 (tax) — look for this sign when shopping, and bring your passport. Read めんぜい."],
+        ["両替","りょうがえ","ryougae","currency exchange","Where you change money — at airports, banks and major stations. Read りょうがえ."],
+        ["案内所","あんないじょ","annaijo","information desk","案内 (guidance) + 所 (place) — the desk to ask at when you're lost in a station. Read あんないじょ."],
+        ["非常口","ひじょうぐち","hijouguchi","emergency exit","非常 (emergency) + 口 (opening) — the sign with the green running figure. Read ひじょうぐち."],
+        ["禁煙","きんえん","kin'en","no smoking","禁 (forbidden) + 煙 (smoke) — posted in trains, restaurants and hotel rooms. Read きんえん."],
+        ["駐車場","ちゅうしゃじょう","chuushajou","parking lot","駐 (stopping) + 車 (car) + 場 (place). Read ちゅうしゃじょう."],
+        ["交番","こうばん","kouban","police box","The small neighborhood police box — a good place to ask for directions or report something lost. Read こうばん."],
+        ["病院","びょういん","byouin","hospital","病 (illness) + 院 (institution). Read びょういん."],
+        ["お土産","おみやげ","omiyage","souvenir","The gift you bring back from a trip — often boxed local sweets. Read おみやげ."]
+      ];
+      
+      
+      
+      
+      
+      
+      
+      var FRONT_PITCH = {
+        "ちかてつ":2,"しんかんせん":4,"かいさつ":0,"めんぜい":0,"りょうがえ":0,"あんないじょ":4,
+        "ひじょうぐち":3,"きんえん":0,"ちゅうしゃじょう":3,"こうばん":0,"びょういん":0,"おみやげ":0,
+        "あか":1,"あお":1,"きいろ":0,"みどり":1,"しろ":0,"くろ":1,
+        "ぴんく":1,"おれんじ":2,"むらさき":0,"ちゃいろ":0,"はいいろ":0,"そらいろ":0
+      };
+      
+      
+      
+      function frontPitchHtml(reading) {
+        var acc = FRONT_PITCH[reading];
+        if (acc === undefined) return reading;
+        return pitchMarked(reading, acc) + "<span class='f-ac'>[" + acc + "]</span>";
+      }
+      
+      
+      
+      
+      
+      var COLORS = [
+        ["赤","あか","red","#d23a2a","aka"],
+        ["青","あお","blue","#2f5fc4","ao"],
+        ["黄色","きいろ","yellow","#f0c42e","kiiro"],
+        ["緑","みどり","green","#3d9e50","midori"],
+        ["白","しろ","white","#ffffff","shiro"],
+        ["黒","くろ","black","#26262b","kuro"],
+        ["ピンク","ぴんく","pink","#f191b8","pinku"],
+        ["オレンジ","おれんじ","orange","#ef7d1a","orenji"],
+        ["紫","むらさき","purple","#7c4da3","murasaki"],
+        ["茶色","ちゃいろ","brown","#8a5a33","chairo"],
+        ["灰色","はいいろ","gray","#8d8d93","haiiro"],
+        ["空色","そらいろ","light blue","#79bfe6","sorairo"]
+      ];
+      var ROW_ORDER = ["Vowels","K row","S row","T row","N row","H row","M row","Y row","R row","W row","G row","Z row","D row","B row","P row"];
+
+      
+      var state = {
+        deck: "hiragana",       
+        rows: {},               
+        dakuten: false,
+        reverse: false,
+        shuffle: false,
+        cards: [],              
+        fullDeck: [],           
+        idx: 0,
+        flipped: false,
+        marks: {}               
+      };
+
+      var els = {
+        rowFilters: document.getElementById("rowFilters"),
+        card: document.getElementById("card"),
+        frontCorner: document.getElementById("frontCorner"),
+        backCorner: document.getElementById("backCorner"),
+        frontCornerR: document.getElementById("frontCornerR"),
+        backCornerR: document.getElementById("backCornerR"),
+        frontFurigana: document.getElementById("frontFurigana"),
+        frontMain: document.getElementById("frontMain"),
+        backMain: document.getElementById("backMain"),
+        backSub: document.getElementById("backSub"),
+        backHint: document.getElementById("backHint"),
+        backRoot: document.getElementById("backRoot"),
+        backWords: document.getElementById("backWords"),
+        backSwatch: document.getElementById("backSwatch"),
+        backWord: document.getElementById("backWord"),
+        backReading: document.getElementById("backReading"),
+        stamp: document.getElementById("stamp"),
+        counter: document.getElementById("counter"),
+        barFill: document.getElementById("barFill"),
+        knownCount: document.getElementById("knownCount"),
+        unsureCount: document.getElementById("unsureCount"),
+        dontknowCount: document.getElementById("dontknowCount"),
+        playArea: document.getElementById("playArea"),
+        doneArea: document.getElementById("doneArea"),
+        doneText: document.getElementById("doneText"),
+        reviewBtn: document.getElementById("reviewBtn")
+      };
+
+      function shuffleArr(a) {
+        for (var i = a.length - 1; i > 0; i--) {
+          var j = Math.floor(Math.random() * (i + 1));
+          var t = a[i]; a[i] = a[j]; a[j] = t;
+        }
+        return a;
+      }
+
+      function buildCards() {
+        var list = [];
+        var i, r;
+        if (state.deck === "words") {
+          for (i = 0; i < WORDS.length; i++) {
+            list.push({
+              id: "w" + i, kind: "word",
+              front: WORDS[i][0], furigana: WORDS[i][1], romaji: WORDS[i][2],
+              meaning: WORDS[i][3], hint: WORDS[i][4], row: "Travel words"
+            });
+          }
+          return list;
+        }
+        if (state.deck === "colors") {
+          for (i = 0; i < COLORS.length; i++) {
+            list.push({
+              id: "c" + i, kind: "color",
+              front: COLORS[i][0], furigana: COLORS[i][1],
+              english: COLORS[i][2], hex: COLORS[i][3],
+              romaji: COLORS[i][4], row: "Colors"
+            });
+          }
+          return list;
+        }
+        var src = BASIC.concat(state.dakuten ? DAKUTEN : []);
+        var rowsEnabled = Object.keys(state.rows).filter(function (k) { return state.rows[k]; });
+        for (i = 0; i < src.length; i++) {
+          r = src[i];
+          if (rowsEnabled.length && rowsEnabled.indexOf(r[3]) === -1) continue;
+          var ex = KANA_EXTRA[r[0]] || { rh: "", rk: "", wh: [], wk: [] };
+          var isKata = state.deck === "katakana";
+          list.push({
+            id: (isKata ? "k" : "h") + r[2] + r[3],
+            kind: "kana",
+            front: isKata ? r[1] : r[0],
+            other: isKata ? r[0] : r[1],
+            romaji: r[2], row: r[3],
+            root: isKata ? ex.rk : ex.rh,
+            words: isKata ? ex.wk : ex.wh
+          });
+        }
+        return list;
+      }
+
+      function rebuild(resetMarks) {
+        state.fullDeck = buildCards();
+        state.cards = state.fullDeck.slice();
+        if (state.shuffle) shuffleArr(state.cards);
+        state.idx = 0;
+        state.flipped = false;
+        if (resetMarks) state.marks = {};
+        renderRowFilters();
+        showPlay();
+        render();
+      }
+
+      function renderRowFilters() {
+        els.rowFilters.innerHTML = "";
+        if (state.deck === "words" || state.deck === "colors") {
+          var s = document.createElement("span");
+          s.className = "lbl";
+          s.textContent = state.deck === "colors" ? "Everyday colors" : "Signs & everyday words from your lessons";
+          s.style.textTransform = "none";
+          s.style.letterSpacing = "0";
+          s.style.fontSize = "13px";
+          els.rowFilters.appendChild(s);
+          return;
+        }
+        var present = state.dakuten ? ROW_ORDER : ROW_ORDER.slice(0, 10);
+        present.forEach(function (row) {
+          var b = document.createElement("button");
+          b.type = "button";
+          b.className = "chip";
+          b.textContent = row === "Vowels" ? (state.dakuten ? "V" : "Vow") : row.replace(" row", "");
+          b.setAttribute("aria-label", row);
+          b.setAttribute("aria-pressed", state.rows[row] ? "true" : "false");
+          b.addEventListener("click", function () {
+            state.rows[row] = !state.rows[row];
+            rebuild(false);
+          });
+          els.rowFilters.appendChild(b);
+        });
+      }
+
+      function current() { return state.cards[state.idx]; }
+
+      function scriptName() {
+        return state.deck === "katakana" ? "Katakana" : "Hiragana";
+      }
+
+      function render() {
+        var c = current();
+        if (!c) { showDone(); return; }
+        var cornerText, cornerRText;
+        if (c.kind === "word") {
+          cornerText = "Travel word";
+          cornerRText = "";
+        } else if (c.kind === "color") {
+          cornerText = "Color";
+          cornerRText = "";
+        } else {
+          cornerText = scriptName() + " · " + c.row;
+          cornerRText = state.deck === "katakana" ? "ひ " + c.other : "カ " + c.other;
+        }
+        els.frontCorner.textContent = cornerText;
+        els.backCorner.textContent = cornerText;
+        els.frontCornerR.textContent = cornerRText;
+        els.backCornerR.textContent = cornerRText;
+
+        
+        var isRubyFront = c.kind === "color" || c.kind === "word";
+        els.frontFurigana.classList.toggle("hidden", !isRubyFront);
+        if (isRubyFront) els.frontFurigana.innerHTML = frontPitchHtml(c.furigana);
+        if (state.reverse && c.kind === "kana") {
+          els.frontMain.className = "romaji-big";
+          els.frontMain.textContent = c.romaji;
+        } else {
+          els.frontMain.className = (c.kind === "word" || c.kind === "color") ? "big-word" : "big-kana";
+          els.frontMain.textContent = c.front;
+        }
+        
+        if (state.reverse && c.kind === "kana") {
+          els.backMain.className = "big-kana";
+          els.backMain.style.fontSize = "clamp(80px, 26vw, 130px)";
+          els.backMain.textContent = c.front;
+          els.backSub.textContent = c.romaji;
+        } else {
+          els.backMain.className = "romaji-big";
+          els.backMain.style.fontSize = "";
+          if (c.kind === "kana") {
+            els.backMain.innerHTML = "<span class='back-kana'>" + c.front + "</span> " + c.romaji;
+          } else {
+            els.backMain.textContent = c.romaji;
+          }
+          els.backSub.textContent = c.kind === "word" ? c.front : "";
+        }
+        els.backHint.innerHTML = c.kind === "word"
+          ? "<span class='mark'>" + c.meaning + "</span> — " + c.hint
+          : "";
+
+        
+        var isKana = c.kind === "kana";
+        els.backRoot.classList.toggle("hidden", !isKana);
+        els.backWords.classList.toggle("hidden", !isKana);
+        if (isKana) {
+          els.backRoot.innerHTML = "<span class='root-lbl'>Root</span>" + c.root;
+          els.backWords.innerHTML = c.words.map(function (w) {
+            var kj = WORD_KANJI[w[0]] || "";
+            var kjHtml = kj ? "<span class='w-kj'>（" + kj + "）</span>" : "";
+            return "<div class='w-row'>" + pitchWordHtml(w[0]) + kjHtml +
+              "<span class='w-ro'>" + w[1] + "</span>" +
+              "<span class='w-gl'>— " + w[2] + "</span></div>";
+          }).join("");
+        } else {
+          els.backRoot.innerHTML = "";
+          els.backWords.innerHTML = "";
+        }
+
+        
+        var isColor = c.kind === "color";
+        els.backMain.classList.toggle("hidden", isColor);
+        els.backSub.classList.toggle("hidden", isColor);
+        els.backHint.classList.toggle("hidden", isColor || isKana);
+        els.backSwatch.classList.toggle("hidden", !isColor);
+        els.backWord.classList.toggle("hidden", !isColor);
+        els.backReading.classList.toggle("hidden", !isColor);
+        if (isColor) {
+          els.backHint.innerHTML = "";
+          els.backSwatch.style.background = c.hex;
+          els.backWord.textContent = c.english;
+          els.backReading.textContent = c.romaji;
+        }
+
+        
+        var m = state.marks[c.id];
+        if (m) {
+          els.stamp.className = "stamp " + m;
+          els.stamp.textContent = m === "known" ? "✓ Got it" : m === "unsure" ? "○ Kind of not sure" : "✗ Really don't remember";
+        } else {
+          els.stamp.className = "stamp hidden";
+        }
+
+        els.card.classList.toggle("flipped", state.flipped);
+        els.counter.textContent = "Card " + (state.idx + 1) + " of " + state.cards.length;
+        var doneCount = Object.keys(state.marks).filter(function (id) {
+          return state.cards.some(function (x) { return x.id === id; });
+        }).length;
+        els.barFill.style.width = state.cards.length ? (doneCount / state.cards.length * 100) + "%" : "0%";
+        var k = 0, u = 0, d = 0;
+        state.cards.forEach(function (x) {
+          if (state.marks[x.id] === "known") k++;
+          if (state.marks[x.id] === "unsure") u++;
+          if (state.marks[x.id] === "dontknow") d++;
+        });
+        els.knownCount.textContent = "✓ " + k;
+        els.unsureCount.textContent = "○ " + u;
+        els.dontknowCount.textContent = "✗ " + d;
+        document.getElementById("prevBtn").disabled = state.idx === 0;
+        document.getElementById("nextBtn").disabled = state.idx >= state.cards.length - 1;
+      }
+
+      function flip() {
+        state.flipped = !state.flipped;
+        render();
+      }
+
+      function mark(kind) {
+        var c = current();
+        if (!c) return;
+        state.marks[c.id] = kind;
+        if (state.idx < state.cards.length - 1) {
+          state.idx++;
+          state.flipped = false;
+          render();
+        } else {
+          render();
+          showDone();
+        }
+      }
+
+      function showPlay() {
+        els.playArea.classList.remove("hidden");
+        els.doneArea.classList.add("hidden");
+      }
+
+      function showDone() {
+        var total = state.cards.length;
+        var k = 0, u = 0, d = 0;
+        state.cards.forEach(function (x) {
+          if (state.marks[x.id] === "known") k++;
+          if (state.marks[x.id] === "unsure") u++;
+          if (state.marks[x.id] === "dontknow") d++;
+        });
+        var unmarked = total - k - u - d;
+        var msg = "You marked " + k + " of " + total + " as “got it”";
+        if (u) msg += ", " + u + " “kind of not sure”";
+        if (d) msg += ", " + d + " “really don't remember”";
+        if (unmarked) msg += " (" + unmarked + " not marked)";
+        msg += ".";
+        if (u + d === 0 && unmarked === 0) msg += " Clean sweep — try the other script or add dakuten.";
+        els.doneText.textContent = msg;
+        els.reviewBtn.classList.toggle("hidden", u + d === 0);
+        els.playArea.classList.add("hidden");
+        els.doneArea.classList.remove("hidden");
+      }
+
+      
+      els.card.addEventListener("click", flip);
+      els.card.addEventListener("keydown", function (e) {
+        if (e.key === " " || e.key === "Enter") { e.preventDefault(); flip(); }
+      });
+      document.getElementById("flipBtn").addEventListener("click", flip);
+      document.getElementById("knownBtn").addEventListener("click", function () { mark("known"); });
+      document.getElementById("unsureBtn").addEventListener("click", function () { mark("unsure"); });
+      document.getElementById("dontknowBtn").addEventListener("click", function () { mark("dontknow"); });
+      document.getElementById("prevBtn").addEventListener("click", function () {
+        if (state.idx > 0) { state.idx--; state.flipped = false; showPlay(); render(); }
+      });
+      document.getElementById("nextBtn").addEventListener("click", function () {
+        if (state.idx < state.cards.length - 1) { state.idx++; state.flipped = false; showPlay(); render(); }
+      });
+      document.getElementById("restartBtn").addEventListener("click", function () {
+        state.shuffle = false;
+        document.getElementById("shuffleToggle").setAttribute("aria-pressed", "false");
+        rebuild(true);
+      });
+      els.reviewBtn.addEventListener("click", function () {
+        var tricky = state.fullDeck.filter(function (x) {
+          return state.marks[x.id] === "dontknow" || state.marks[x.id] === "unsure";
+        });
+        if (!tricky.length) return;
+        state.cards = shuffleArr(tricky.slice());
+        state.idx = 0;
+        state.flipped = false;
+        showPlay();
+        render();
+      });
+
+      document.querySelectorAll(".seg button").forEach(function (b) {
+        b.addEventListener("click", function () {
+          document.querySelectorAll(".seg button").forEach(function (x) { x.setAttribute("aria-pressed", "false"); });
+          b.setAttribute("aria-pressed", "true");
+          state.deck = b.getAttribute("data-deck");
+          state.rows = {};
+          
+          
+          state.shuffle = false;
+          document.getElementById("shuffleToggle").setAttribute("aria-pressed", "false");
+          var sub = document.getElementById("headSub");
+          if (state.deck === "colors") sub.innerHTML = "Tap a card to flip it.<br />Front: kanji + hiragana. Back: color + English + romaji.";
+          else if (state.deck === "words") sub.innerHTML = "Tap a card to flip it.<br />Front: kanji + hiragana. Back: English + romaji.";
+          else sub.innerHTML = "Tap a card to flip it.<br />Front: the kana. Back: sound, root &amp; words.";
+          rebuild(true);
+        });
+      });
+      document.getElementById("dakutenToggle").addEventListener("click", function () {
+        state.dakuten = !state.dakuten;
+        this.setAttribute("aria-pressed", state.dakuten ? "true" : "false");
+        if (state.deck === "hiragana" || state.deck === "katakana") rebuild(true);
+      });
+      document.getElementById("reverseToggle").addEventListener("click", function () {
+        state.reverse = !state.reverse;
+        this.setAttribute("aria-pressed", state.reverse ? "true" : "false");
+        state.flipped = false;
+        render();
+      });
+      document.getElementById("shuffleToggle").addEventListener("click", function () {
+        state.shuffle = !state.shuffle;
+        this.setAttribute("aria-pressed", state.shuffle ? "true" : "false");
+        rebuild(false);
+      });
+
+      document.addEventListener("keydown", function (e) {
+        if (els.doneArea.classList.contains("hidden") === false) return;
+        if (e.key === " " && document.activeElement === document.body) { e.preventDefault(); flip(); }
+        else if (e.key === "ArrowRight") document.getElementById("nextBtn").click();
+        else if (e.key === "ArrowLeft") document.getElementById("prevBtn").click();
+        else if (e.key === "1") mark("dontknow");
+        else if (e.key === "2") mark("unsure");
+        else if (e.key === "3") mark("known");
+      });
+
+      rebuild(true);
+    </script>
+  </body>
+</html>
