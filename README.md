@@ -9,6 +9,7 @@ Small single-file web apps built with Muse (Omi), archived here as self-containe
 - **[3D-Bible](3D-Bible/)** — interactive 3D visualization of all 66 books of the Bible: tower height = chapters, a layer per chapter, a block per verse, with verse highlighting, reading, and search. File: `3D-Bible/3D-Bible.html`
 - **[Kana Flashcards](Japanese/)** — Japanese kana flashcards: hiragana and katakana decks with man'yōgana roots and pitch accents, plus Travel and Colors word decks. File: `Japanese/Japanese.html`
 - **[Solar](solar/)** — interactive Sun–Earth–Moon visualization with Face-on and Edge-on views, live Moon phase, and a to-scale orbit view of all eight planets. File: `solar/solar.html`
+- **[Fruit of the Spirit](fruit-of-the-spirit/)** — the nine Fruit of the Spirit as a 3×3 tile grid, with labels in English, Traditional Chinese, Japanese, and German, plus a hand-gesture image set. File: `fruit-of-the-spirit/fruit-of-the-spirit.html`
 
 ## Provenance
 
