@@ -8,6 +8,7 @@ Small single-file web apps built with Muse (Omi), archived here as self-containe
 - **[LA Star Map](stars/)** — live interactive star map for Los Angeles with Moon phases, jump-to-event buttons, and a Chinese lunar date readout. File: `stars/stars.html`
 - **[3D-Bible](3D-Bible/)** — interactive 3D visualization of all 66 books of the Bible: tower height = chapters, a layer per chapter, a block per verse, with verse highlighting, reading, and search. File: `3D-Bible/3D-Bible.html`
 - **[Kana Flashcards](Japanese/)** — Japanese kana flashcards: hiragana and katakana decks with man'yōgana roots and pitch accents, plus Travel and Colors word decks. File: `Japanese/Japanese.html`
+- **[Solar](solar/)** — interactive Sun–Earth–Moon visualization with Face-on and Edge-on views, live Moon phase, and a to-scale orbit view of all eight planets. File: `solar/solar.html`
 
 ## Provenance
 
