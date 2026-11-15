@@ -9,9 +9,3 @@ An interactive 3D visualization of the Bible's 66 books, built with Muse (Omi). 
 ## Files
 
 - `3D-Bible.html` — the complete app as one self-contained HTML file. Open it in any browser; no server or build step needed. (Verse text and search load live from free Bible APIs, so the reading features need an internet connection.)
-
-## Provenance
-
-- Exported from the Muse artifact `bible-books-3d` on 2026-11-13 (America/Los_Angeles), Build 279 (2026-11-13).
-- Public (published) version: https://muse.ai/s/bible-books-3d-xqa6cxpxszzxny6/LQVvg9rLQ7i6UTr_2M07ia9uJznZXFclftXMbuoNLvM
-- For this archive copy, all code comments have been stripped; the app code itself is unchanged.
